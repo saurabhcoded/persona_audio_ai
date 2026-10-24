@@ -25,6 +25,11 @@ Next steps:
   - `app/persona/` pairs, stats, index (numpy cosine), builder (argon card + emoji map, gemini-embedding-2) — FR-BLD-01..05, FR-EMO-01
   - `app/storage/personas.py` on-disk store; routes: GET/DELETE /personas/{id}, POST /personas/participants, POST /personas (202)
   - Frontend: persona select, New persona panel, build polling, persona card panel, delete
+  - UI redesign (2026-10-24): 3-column layout — persona sidebar (avatars, status, last message), chat
+    (typing dots, speaking equalizer, timestamps, play/stop per reply, voice/script toggles, suggestion chips),
+    right profile panel of the chat person (voice preview, texting-style stats, emoji→voice chips, personality
+    traits parsed from the card, privacy summary, delete). Drawers below 1180px / 760px; light + dark tokens.
+    Components in `frontend/src/components/`. Verified with headless-Chrome screenshots (desktop/dark/mobile).
   - Speech streams with the text: per-line TTS in the SSE stream, browser audio queue, replay from clips (D-016);
     chat thinking=minimal + empty-reply retry (D-017). Live: first audio ~0.25–0.5 s after the line is written
   - Voice picker at creation (catalog + ▶ Preview), persona voice used for TTS, 429 retry (D-015)

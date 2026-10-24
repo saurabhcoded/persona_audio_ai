@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiDelete, apiGet, apiPostBlob, apiStream } from "./api.js";
 import { AudioQueue, base64ToBlob } from "./audioQueue.js";
-import NewPersona, { voiceLabel } from "./NewPersona.jsx";
+import Avatar, { Equalizer } from "./components/Avatar.jsx";
+import Icon from "./components/Icon.jsx";
+import PersonaPanel from "./components/PersonaPanel.jsx";
+import Sidebar from "./components/Sidebar.jsx";
+import NewPersona, { PREVIEW_TEXT } from "./NewPersona.jsx";
 
 const SELECTED_KEY = "persona-voice.selected";
+const SUGGESTIONS = ["Hey! kya chal raha hai? 👋", "Aaj ka din kaisa tha?", "Weekend ka kya plan hai?"];
 
 const toLines = (text) =>
   text
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+
+const clock = (ts) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 function readSelected() {
   try {
@@ -34,24 +41,30 @@ export default function App() {
   const [voices, setVoices] = useState([]);
   const [apiStatus, setApiStatus] = useState("checking");
   const [creating, setCreating] = useState(false);
-  // per-persona chat history: { [personaId]: [{ id, role, text, ttsText?, clips?, streaming?, error? }] }
+  // per-persona chat history: { [personaId]: [{ id, role, text, at, ttsText?, clips?, streaming?, error? }] }
   // clips = audio Blobs per line, streamed with the reply, kept for replay
   const [chats, setChats] = useState({});
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [speakLive, setSpeakLive] = useState(true);
   const [showScript, setShowScript] = useState(false);
-  const [showCard, setShowCard] = useState(false);
   const [speakingId, setSpeakingId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const abortRef = useRef(null);
   const playerRef = useRef(null);
   if (!playerRef.current) playerRef.current = new AudioQueue(setSpeakingId);
   const player = playerRef.current;
   const endRef = useRef(null);
+  const inputRef = useRef(null);
 
   const persona = personas.find((p) => p.id === selectedId) ?? personas[0] ?? null;
   const messages = (persona && chats[persona.id]) || [];
   const anyBuilding = personas.some((p) => p.status === "building");
+  const voice = voices.find((v) => v.id === persona?.voice_id) ?? null;
+  const personaSpeaking = messages.some((m) => m.id === speakingId);
+  const typing = streaming && messages.at(-1)?.streaming;
+  const ready = persona?.status === "ready";
 
   const loadPersonas = useCallback(async () => {
     try {
@@ -76,7 +89,7 @@ export default function App() {
     return () => clearInterval(t);
   }, [anyBuilding, loadPersonas]);
 
-  // Persona card for the selected persona, once it's ready.
+  // Profile details for the right panel, once the persona is ready.
   useEffect(() => {
     setDetail(null);
     if (!persona || persona.status !== "ready") return;
@@ -95,6 +108,7 @@ export default function App() {
     setSelectedId(id);
     saveSelected(id);
     setCreating(false);
+    setSidebarOpen(false);
   };
 
   const setMessages = (personaId, update) =>
@@ -125,19 +139,33 @@ export default function App() {
     }
   };
 
-  const send = async (e) => {
-    e.preventDefault();
-    const text = input.trim();
+  const previewVoice = async (voiceId) => {
+    player.stop();
+    setSpeakingId("preview");
+    try {
+      player.enqueue(await apiPostBlob("/tts", { voice_id: voiceId, text: PREVIEW_TEXT }), "preview");
+    } catch {
+      setSpeakingId(null);
+    }
+  };
+
+  const send = async (e, preset) => {
+    e?.preventDefault();
+    const text = (preset ?? input).trim();
     if (!text || streaming || !persona || persona.status !== "ready") return;
     const pid = persona.id;
 
-    const userMsg = { id: crypto.randomUUID(), role: "user", text };
+    const userMsg = { id: crypto.randomUUID(), role: "user", text, at: Date.now() };
     const replyId = crypto.randomUUID();
     const history = [...messages, userMsg]
       .filter((m) => m.text && !m.error)
       .map((m) => ({ role: m.role, text: m.text }));
 
-    setMessages(pid, (ms) => [...ms, userMsg, { id: replyId, role: "persona", text: "", streaming: true }]);
+    setMessages(pid, (ms) => [
+      ...ms,
+      userMsg,
+      { id: replyId, role: "persona", text: "", streaming: true, at: Date.now() },
+    ]);
     setInput("");
     setStreaming(true);
     const controller = new AbortController();
@@ -182,7 +210,13 @@ export default function App() {
     } finally {
       setStreaming(false);
       abortRef.current = null;
+      inputRef.current?.focus();
     }
+  };
+
+  const stop = () => {
+    abortRef.current?.abort();
+    player.stop();
   };
 
   const remove = async () => {
@@ -193,161 +227,223 @@ export default function App() {
       setChats(({ [persona.id]: _gone, ...rest }) => rest);
       await loadPersonas();
       setSelectedId(null);
+      setPanelOpen(false);
     } catch (e) {
       window.alert(`Delete failed: ${e.message}`);
     }
   };
 
-  const ready = persona?.status === "ready";
+  const statusLine = typing ? (
+    <span className="typing-label">typing…</span>
+  ) : personaSpeaking ? (
+    <span className="speaking-label">
+      <Equalizer /> speaking
+    </span>
+  ) : persona?.status === "building" ? (
+    "building persona…"
+  ) : voice ? (
+    `voice: ${voice.name}`
+  ) : (
+    "online"
+  );
 
   return (
-    <main className="chat-shell">
-      <header className="chat-head">
-        <div className="avatar" aria-hidden="true">
-          {persona?.name?.[0]?.toUpperCase() ?? "?"}
-        </div>
-        <div className="who">
-          <select
-            className="persona-select"
-            aria-label="Persona"
-            value={persona?.id ?? ""}
-            onChange={(e) => select(e.target.value)}
-            disabled={!personas.length}
-          >
-            {personas.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-                {p.status === "building" ? " (building…)" : p.status === "failed" ? " (failed)" : ""}
-              </option>
-            ))}
-          </select>
-          <p className="muted tagline">{persona?.tagline ?? (apiStatus === "down" ? "Backend unreachable" : "")}</p>
-        </div>
-        <button type="button" className="secondary" onClick={() => setCreating(true)}>
-          + New
-        </button>
-        <span className={`badge ${apiStatus}`}>{apiStatus}</span>
-      </header>
+    <div className={`app${creating || !persona ? " no-panel" : ""}`}>
+      <Sidebar
+        personas={personas}
+        selectedId={persona?.id}
+        chats={chats}
+        apiStatus={apiStatus}
+        onSelect={select}
+        onNew={() => {
+          setCreating(true);
+          setSidebarOpen(false);
+        }}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      {creating ? (
-        <NewPersona
-          onCancel={() => setCreating(false)}
-          onCreated={async (p) => {
-            await loadPersonas();
-            select(p.id);
-          }}
-        />
-      ) : (
-        <>
-          <div className="toolbar">
-            <label>
-              <input type="checkbox" checked={speakLive} onChange={(e) => setSpeakLive(e.target.checked)} />
-              Speak replies
-            </label>
-            <label>
-              <input type="checkbox" checked={showScript} onChange={(e) => setShowScript(e.target.checked)} />
-              Voice script
-            </label>
-            <label>
-              <input type="checkbox" checked={showCard} onChange={(e) => setShowCard(e.target.checked)} />
-              Persona card
-            </label>
-            {persona && (
-              <span className="voice-name">
-                Voice: {(() => {
-                  const v = voices.find((x) => x.id === persona.voice_id);
-                  return v ? voiceLabel(v) : "Fish default";
-                })()}
+      <main className="chat">
+        <header className="chat-head">
+          <button type="button" className="icon-btn only-mobile" onClick={() => setSidebarOpen(true)} aria-label="Personas">
+            <Icon name="menu" />
+          </button>
+          {persona && !creating && (
+            <button type="button" className="chat-title" onClick={() => setPanelOpen(true)}>
+              <Avatar name={persona.name} size={38} speaking={personaSpeaking} />
+              <span>
+                <span className="chat-name">{persona.name}</span>
+                <span className="chat-status">{statusLine}</span>
               </span>
-            )}
-            {persona?.source === "chat" && (
-              <button type="button" className="link danger" onClick={remove}>
-                Delete persona
-              </button>
-            )}
-          </div>
-
-          {showCard && detail && (
-            <section className="card-panel">
-              <pre>{detail.card || "No card."}</pre>
-              {detail.style && <pre className="muted">{detail.style}</pre>}
-              {detail.report && (
-                <p className="muted small">
-                  Sanitized {detail.report.messages_in} messages: {detail.report.artifacts_dropped} media/system lines
-                  dropped, {Object.values(detail.report.pii).reduce((a, b) => a + b, 0)} personal details redacted,{" "}
-                  {detail.report.participants_pseudonymized} other people pseudonymized.
-                </p>
-              )}
-            </section>
+            </button>
           )}
-
-          {persona?.status === "building" && (
-            <p className="banner">
-              Building {persona.name} from the chat: reading style, emojis and real replies. This usually takes under a
-              minute.
-            </p>
-          )}
-          {persona?.status === "failed" && <p className="banner error">{persona.error}</p>}
-
-          <section className="messages" aria-live="polite">
-            {messages.length === 0 && ready && (
-              <p className="empty muted">Say something to {persona.name}.</p>
-            )}
-            {messages.map((m) =>
-              m.role === "user" ? (
-                <div key={m.id} className="row user">
-                  <div className="bubble">{m.text}</div>
-                </div>
-              ) : (
-                <div key={m.id} className="row persona">
-                  {toLines(m.text).map((line, i) => (
-                    <div key={i} className="bubble">
-                      {line}
-                    </div>
-                  ))}
-                  {m.streaming && !m.text && <div className="bubble typing">typing…</div>}
-                  {m.error && <p className="error">{m.error}</p>}
-                  {m.voiceNote && <p className="muted small">{m.voiceNote}</p>}
-                  {!m.streaming && m.ttsText && (
-                    <div className="reply-tools">
-                      <button className="link" onClick={() => speak(persona.id, m)} disabled={speakingId === m.id}>
-                        {speakingId === m.id ? "Speaking…" : "▶ Speak"}
-                      </button>
-                      {showScript && <code className="script">{m.ttsText}</code>}
-                    </div>
-                  )}
-                </div>
-              ),
-            )}
-            <div ref={endRef} />
-          </section>
-
-          <form className="composer" onSubmit={send}>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={ready ? `Message ${persona.name}` : "Persona not ready yet"}
-              disabled={!ready}
-              autoFocus
-            />
-            {streaming ? (
+          {creating && <span className="chat-name">Create a persona</span>}
+          <span className="spacer" />
+          {!creating && (
+            <>
               <button
                 type="button"
+                className={`icon-btn${speakLive ? " on" : ""}`}
                 onClick={() => {
-                  abortRef.current?.abort();
-                  player.stop();
+                  if (speakLive) player.stop();
+                  setSpeakLive(!speakLive);
                 }}
+                aria-pressed={speakLive}
+                title={speakLive ? "Voice on: replies are spoken as they stream" : "Voice off"}
               >
-                Stop
+                <Icon name={speakLive ? "volume" : "volumeOff"} />
               </button>
-            ) : (
-              <button type="submit" disabled={!input.trim() || !ready}>
-                Send
+              <button
+                type="button"
+                className={`icon-btn${showScript ? " on" : ""}`}
+                onClick={() => setShowScript(!showScript)}
+                aria-pressed={showScript}
+                title="Show the voice script (cues sent to Fish Audio)"
+              >
+                <Icon name="code" />
               </button>
-            )}
-          </form>
-        </>
+              <button
+                type="button"
+                className="icon-btn only-drawer-panel"
+                onClick={() => setPanelOpen(true)}
+                aria-label="Profile"
+              >
+                <Icon name="user" />
+              </button>
+            </>
+          )}
+        </header>
+
+        {creating ? (
+          <NewPersona
+            voices={voices}
+            onCancel={() => setCreating(false)}
+            onCreated={async (p) => {
+              await loadPersonas();
+              select(p.id);
+            }}
+          />
+        ) : (
+          <>
+            <section className="messages" aria-live="polite">
+              {persona?.status === "building" && (
+                <div className="notice">
+                  <span className="spinner" /> Building {persona.name} from the chat — reading style, emojis and real
+                  replies. Usually under a minute.
+                </div>
+              )}
+              {persona?.status === "failed" && <div className="notice error">{persona.error}</div>}
+
+              {messages.length === 0 && ready && (
+                <div className="empty">
+                  <Avatar name={persona.name} size={72} />
+                  <h2>Say hi to {persona.name}</h2>
+                  <p>Replies come in {persona.name}'s own style{speakLive ? " — and voice" : ""}.</p>
+                  <div className="suggestions">
+                    {SUGGESTIONS.map((s) => (
+                      <button key={s} type="button" className="suggestion" onClick={() => send(null, s)}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {messages.map((m) =>
+                m.role === "user" ? (
+                  <div key={m.id} className="row user">
+                    <div className="bubble">{m.text}</div>
+                    <span className="meta">{clock(m.at)}</span>
+                  </div>
+                ) : (
+                  <div key={m.id} className={`row persona${speakingId === m.id ? " is-speaking" : ""}`}>
+                    {toLines(m.text).map((line, i) => (
+                      <div key={i} className="bubble">
+                        {line}
+                      </div>
+                    ))}
+                    {m.streaming && !m.text && (
+                      <div className="bubble typing" aria-label="typing">
+                        <i />
+                        <i />
+                        <i />
+                      </div>
+                    )}
+                    {m.error && <p className="msg-error">{m.error}</p>}
+                    {!m.streaming && m.text && (
+                      <div className="meta">
+                        {clock(m.at)}
+                        {m.ttsText && (
+                          <button
+                            type="button"
+                            className="replay"
+                            onClick={() => (speakingId === m.id ? player.stop() : speak(persona.id, m))}
+                          >
+                            {speakingId === m.id ? (
+                              <>
+                                <Equalizer /> stop
+                              </>
+                            ) : (
+                              <>
+                                <Icon name="play" size={11} /> play
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {m.voiceNote && <span>· {m.voiceNote}</span>}
+                      </div>
+                    )}
+                    {showScript && m.ttsText && <code className="script">{m.ttsText}</code>}
+                  </div>
+                ),
+              )}
+              <div ref={endRef} />
+            </section>
+
+            <form className="composer" onSubmit={send}>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={ready ? `Message ${persona.name}…` : "Persona not ready yet"}
+                disabled={!ready}
+                autoFocus
+              />
+              {streaming ? (
+                <button type="button" className="send-btn stop" onClick={stop} aria-label="Stop">
+                  <Icon name="stop" />
+                </button>
+              ) : (
+                <button type="submit" className="send-btn" disabled={!input.trim() || !ready} aria-label="Send">
+                  <Icon name="send" />
+                </button>
+              )}
+            </form>
+          </>
+        )}
+      </main>
+
+      <PersonaPanel
+        persona={creating ? null : persona}
+        detail={detail}
+        voice={voice}
+        speaking={personaSpeaking}
+        previewing={speakingId === "preview"}
+        onPreviewVoice={previewVoice}
+        onDelete={remove}
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+      />
+
+      {(sidebarOpen || panelOpen) && (
+        <div
+          className="scrim"
+          onClick={() => {
+            setSidebarOpen(false);
+            setPanelOpen(false);
+          }}
+        />
       )}
-    </main>
+    </div>
   );
 }
