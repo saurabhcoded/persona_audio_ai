@@ -1,0 +1,14 @@
+# Production-like stack. For local dev with hot reload:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+services:
+  api:
+    build:
+      context: .
+      target: prod
+    image: fish-audio-api:latest
+    container_name: fish-audio-api
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    restart: unless-stopped

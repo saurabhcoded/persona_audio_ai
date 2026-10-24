@@ -1,0 +1,29 @@
+# Dev overrides: dev image target, source mounted for hot reload,
+# plus a Vite dev server (http://localhost:5173) proxying /api to the api service.
+services:
+  api:
+    build:
+      target: dev
+    image: fish-audio-api:dev
+    volumes:
+      - ./app:/app/app
+      - ./tests:/app/tests
+    restart: "no"
+
+  web:
+    image: node:24-alpine
+    container_name: fish-audio-web
+    working_dir: /frontend
+    command: sh -c "npm install && npm run dev"
+    environment:
+      VITE_API_PROXY_TARGET: http://api:${PORT:-8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/frontend
+      - web_node_modules:/frontend/node_modules
+    depends_on:
+      - api
+
+volumes:
+  web_node_modules:
