@@ -118,6 +118,11 @@ Open questions (OQ-*) mirror `docs/requirements/product-requirements.md` §9.
   text** (default off: their texting style stays on screen; applied to `done` bubbles). Re-detection merges,
   keeping user edits and hand-added entries. Demo persona edits go to builtin overrides (store.update()).
 
+- **D-025 · 2026-10-24 · accepted** — Deployed to **Cloud Run** (`persona-voice`, asia-south1) from source;
+  data on a GCS FUSE volume, Fish key in Secret Manager, dedicated least-privilege service account, max 1
+  instance, CPU always allocated. **Public URL by user's choice** — no app login yet (follow-up).
+  Details: `agents/knowledge/deployment.md`.
+
 ## Proposed (need user confirmation)
 
 - **D-103 · proposed** — Topic classifier: cheap external LLM on already-redacted text; Llama Guard local as

@@ -52,6 +52,13 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 docker compose up --build -d
 ```
 
+## Deploy (Google Cloud Run)
+
+`make deploy` builds the image with Cloud Build and deploys service `persona-voice` to project
+`eseller-ai` (asia-south1). Data lives in a private Cloud Storage bucket mounted at `/data`; the Fish
+Audio key comes from Secret Manager. Live: https://persona-voice-627395208842.asia-south1.run.app
+(public, no login yet). Details and one-time setup: `agents/knowledge/deployment.md`.
+
 ## Run locally
 
 Python is managed with [uv](https://docs.astral.sh/uv/): dependencies live in `pyproject.toml`

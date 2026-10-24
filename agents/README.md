@@ -15,6 +15,7 @@ how we build, what's decided, where we are.
 | [knowledge/fish-audio.md](knowledge/fish-audio.md) | Anything that produces TTS text or calls Fish Audio. |
 | [knowledge/vertex-gemini.md](knowledge/vertex-gemini.md) | Anything that calls an LLM or embeddings (Gemini on Vertex AI). |
 | [knowledge/google-maps.md](knowledge/google-maps.md) | Anything in `app/location/` (Places, Routes, Uber links). |
+| [knowledge/deployment.md](knowledge/deployment.md) | Deploying / anything about the Cloud Run service. |
 | [knowledge/related-projects.md](knowledge/related-projects.md) | Looking for prior art / ideas. |
 
 Product requirements live in [`docs/requirements/`](../docs/requirements/README.md); requirement IDs
