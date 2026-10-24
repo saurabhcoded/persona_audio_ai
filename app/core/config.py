@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     gcp_project: str | None = None
     gcp_location: str = "global"
     llm_chat_model: str = "gemini-3.5-flash-lite"
-    llm_chat_thinking: Literal["minimal", "low", "medium", "high"] | None = "low"
+    llm_chat_thinking: Literal["minimal", "low", "medium", "high"] | None = "minimal"
     llm_chat_temperature: float = 0.9
     llm_build_model: str = "gemini-4-argon"
     llm_classify_model: str = "gemini-3.5-flash-lite"
@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     fish_tts_format: Literal["mp3", "wav", "opus"] = "mp3"
     fish_default_voice_id: str | None = None
     tts_max_chars: int = 1000
+    # Parallel TTS calls per streamed reply (Fish limits concurrency per account)
+    tts_stream_concurrency: int = 2
 
     @property
     def is_prod(self) -> bool:

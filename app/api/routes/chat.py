@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.chat.service import stream_reply
 from app.core.config import Settings, get_settings
 from app.llm.client import ChatTurn, LLMDep
+from app.speech.tts import OptionalTTSDep
 from app.storage.personas import StoreDep
 
 router = APIRouter(tags=["chat"])
@@ -17,6 +18,8 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 class ChatRequest(BaseModel):
     persona_id: str
     turns: list[ChatTurn] = Field(min_length=1)
+    # Speak each line while the reply streams (audio events in the same SSE stream)
+    speak: bool = False
 
     @field_validator("turns")
     @classmethod
@@ -28,14 +31,25 @@ class ChatRequest(BaseModel):
 
 @router.post("/chat/stream")
 async def chat_stream(
-    req: ChatRequest, llm: LLMDep, store: StoreDep, settings: SettingsDep
+    req: ChatRequest,
+    llm: LLMDep,
+    store: StoreDep,
+    settings: SettingsDep,
+    tts: OptionalTTSDep,
 ) -> StreamingResponse:
-    """Streams the persona's reply as server-sent events (see app.chat.service.stream_reply)."""
+    """Streams the persona's reply as server-sent events (see app.chat.service.stream_reply).
+    With `speak`, audio for each line is streamed too (needs FISH_AUDIO_API_KEY)."""
     persona = store.get(req.persona_id)
     if persona.status != "ready":
         raise HTTPException(status_code=409, detail=f"Persona is {persona.status}")
+    if req.speak and tts is None:
+        raise HTTPException(
+            status_code=503, detail="FISH_AUDIO_API_KEY is not configured"
+        )
     return StreamingResponse(
-        stream_reply(persona, req.turns, llm, store, settings),
+        stream_reply(
+            persona, req.turns, llm, store, settings, tts if req.speak else None
+        ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

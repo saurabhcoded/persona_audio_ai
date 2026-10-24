@@ -117,3 +117,21 @@ def test_tts_rejects_long_text(client):
         "/api/v1/tts", json={"persona_id": "demo-rohan", "text": "a" * 5000}
     )
     assert r.status_code == 422
+
+
+class EmptyThenReplyLLM:
+    def __init__(self):
+        self.calls = 0
+
+    async def stream(self, **kwargs):
+        self.calls += 1
+        if self.calls > 1:
+            yield "haan"
+
+
+def test_empty_model_reply_is_retried_once(client):
+    llm = EmptyThenReplyLLM()
+    app.dependency_overrides[get_llm] = lambda: llm
+    evs = events(client.post("/api/v1/chat/stream", json=body()))
+    assert llm.calls == 2
+    assert evs[-1] == ("done", {"bubbles": ["haan"], "tts_text": "haan"})

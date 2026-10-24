@@ -51,3 +51,15 @@ def get_tts(settings: Annotated[Settings, Depends(get_settings)]) -> TTSClient:
 
 
 TTSDep = Annotated[TTSClient, Depends(get_tts)]
+
+
+def get_optional_tts(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TTSClient | None:
+    """For endpoints where speech is optional: None when Fish isn't configured."""
+    if not settings.fish_audio_api_key:
+        return None
+    return get_tts(settings)
+
+
+OptionalTTSDep = Annotated[TTSClient | None, Depends(get_optional_tts)]

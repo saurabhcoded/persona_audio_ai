@@ -83,7 +83,8 @@ multi-speaker `<|speaker:0|>` with `reference_id` array.
   celebrity/character imitations (announcers, YouTubers) that top the popularity list.
 - **Concurrency limit:** 6 parallel TTS calls → one `HTTP 429 … exceeded your current concurrency limit`
   (`fishaudio.exceptions.RateLimitError`). `TTSClient.synthesize` retries 429 twice with backoff.
-- Each voice ≈ 1.5–2 s for a short Hinglish line.
+- Each voice ≈ 1.5–2 s for a short Hinglish line from a cold call; inside a streamed reply, line audio
+  arrived 0.25–0.6 s after the line was written (Boy Hindi, 3-line replies).
 
 ## Voice cloning
 

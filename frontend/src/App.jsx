@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiDelete, apiGet, apiPostBlob, apiStream } from "./api.js";
+import { AudioQueue, base64ToBlob } from "./audioQueue.js";
 import NewPersona, { voiceLabel } from "./NewPersona.jsx";
 
 const SELECTED_KEY = "persona-voice.selected";
@@ -33,16 +34,19 @@ export default function App() {
   const [voices, setVoices] = useState([]);
   const [apiStatus, setApiStatus] = useState("checking");
   const [creating, setCreating] = useState(false);
-  // per-persona chat history: { [personaId]: [{ id, role, text, ttsText?, streaming?, error? }] }
+  // per-persona chat history: { [personaId]: [{ id, role, text, ttsText?, clips?, streaming?, error? }] }
+  // clips = audio Blobs per line, streamed with the reply, kept for replay
   const [chats, setChats] = useState({});
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [speakLive, setSpeakLive] = useState(true);
   const [showScript, setShowScript] = useState(false);
   const [showCard, setShowCard] = useState(false);
   const [speakingId, setSpeakingId] = useState(null);
   const abortRef = useRef(null);
-  const audioRef = useRef(null);
+  const playerRef = useRef(null);
+  if (!playerRef.current) playerRef.current = new AudioQueue(setSpeakingId);
+  const player = playerRef.current;
   const endRef = useRef(null);
 
   const persona = personas.find((p) => p.id === selectedId) ?? personas[0] ?? null;
@@ -87,7 +91,7 @@ export default function App() {
 
   const select = (id) => {
     abortRef.current?.abort();
-    audioRef.current?.pause();
+    player.stop();
     setSelectedId(id);
     saveSelected(id);
     setCreating(false);
@@ -99,16 +103,22 @@ export default function App() {
   const patch = (personaId, id, fields) =>
     setMessages(personaId, (ms) => ms.map((m) => (m.id === id ? { ...m, ...fields } : m)));
 
+  const addClip = (personaId, id, blob) =>
+    setMessages(personaId, (ms) => ms.map((m) => (m.id === id ? { ...m, clips: [...(m.clips || []), blob] } : m)));
+
+  // Replay: reuse the clips streamed with the reply; otherwise synthesize the whole reply once.
   const speak = async (personaId, msg) => {
+    player.stop();
+    if (msg.clips?.length) {
+      msg.clips.forEach((blob) => player.enqueue(blob, msg.id));
+      return;
+    }
     if (!msg.ttsText) return;
-    audioRef.current?.pause();
     setSpeakingId(msg.id);
     try {
       const blob = await apiPostBlob("/tts", { persona_id: personaId, text: msg.ttsText });
-      const audio = new Audio(URL.createObjectURL(blob));
-      audioRef.current = audio;
-      audio.onended = () => setSpeakingId(null);
-      await audio.play();
+      addClip(personaId, msg.id, blob);
+      player.enqueue(blob, msg.id);
     } catch (e) {
       setSpeakingId(null);
       patch(personaId, msg.id, { error: `Voice failed: ${e.message}` });
@@ -132,12 +142,14 @@ export default function App() {
     setStreaming(true);
     const controller = new AbortController();
     abortRef.current = controller;
+    player.stop();
 
     let reply = "";
+    let textDone = false;
     try {
       await apiStream(
         "/chat/stream",
-        { persona_id: pid, turns: history },
+        { persona_id: pid, turns: history, speak: speakLive },
         {
           signal: controller.signal,
           onEvent: (event, data) => {
@@ -145,9 +157,15 @@ export default function App() {
               reply += data.text;
               patch(pid, replyId, { text: reply });
             } else if (event === "done") {
-              const done = { text: data.bubbles.join("\n"), ttsText: data.tts_text, streaming: false };
-              patch(pid, replyId, done);
-              if (autoSpeak) speak(pid, { id: replyId, ...done });
+              textDone = true;
+              patch(pid, replyId, { text: data.bubbles.join("\n"), ttsText: data.tts_text, streaming: false });
+            } else if (event === "audio") {
+              // Lines arrive in order, often while the text is still streaming: play right away.
+              const blob = base64ToBlob(data.audio, data.format);
+              addClip(pid, replyId, blob);
+              player.enqueue(blob, replyId);
+            } else if (event === "audio_error") {
+              patch(pid, replyId, { voiceNote: "Voice skipped a line." });
             } else if (event === "error") {
               patch(pid, replyId, { streaming: false, error: data.message });
             }
@@ -155,10 +173,12 @@ export default function App() {
         },
       );
     } catch (err) {
-      patch(pid, replyId, {
-        streaming: false,
-        error: err.name === "AbortError" ? "Stopped." : `Request failed: ${err.message}`,
-      });
+      if (err.name !== "AbortError" || !textDone) {
+        patch(pid, replyId, {
+          streaming: false,
+          error: err.name === "AbortError" ? "Stopped." : `Request failed: ${err.message}`,
+        });
+      }
     } finally {
       setStreaming(false);
       abortRef.current = null;
@@ -221,8 +241,8 @@ export default function App() {
         <>
           <div className="toolbar">
             <label>
-              <input type="checkbox" checked={autoSpeak} onChange={(e) => setAutoSpeak(e.target.checked)} />
-              Auto-speak
+              <input type="checkbox" checked={speakLive} onChange={(e) => setSpeakLive(e.target.checked)} />
+              Speak replies
             </label>
             <label>
               <input type="checkbox" checked={showScript} onChange={(e) => setShowScript(e.target.checked)} />
@@ -287,6 +307,7 @@ export default function App() {
                   ))}
                   {m.streaming && !m.text && <div className="bubble typing">typing…</div>}
                   {m.error && <p className="error">{m.error}</p>}
+                  {m.voiceNote && <p className="muted small">{m.voiceNote}</p>}
                   {!m.streaming && m.ttsText && (
                     <div className="reply-tools">
                       <button className="link" onClick={() => speak(persona.id, m)} disabled={speakingId === m.id}>
@@ -310,7 +331,13 @@ export default function App() {
               autoFocus
             />
             {streaming ? (
-              <button type="button" onClick={() => abortRef.current?.abort()}>
+              <button
+                type="button"
+                onClick={() => {
+                  abortRef.current?.abort();
+                  player.stop();
+                }}
+              >
                 Stop
               </button>
             ) : (

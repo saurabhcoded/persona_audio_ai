@@ -75,8 +75,8 @@ make lint
 
 Needs `gcloud auth application-default login` (Gemini on Vertex AI) and `FISH_AUDIO_API_KEY` in
 `.env` (for voice). Run `uv run main.py` and `make web`, open http://localhost:5173 and chat with the
-synthetic demo persona. Replies stream in; **▶ Speak** plays them through Fish Audio with
-emoji-derived expression cues ("Show voice script" displays the cued text).
+synthetic demo persona. Replies stream in and, with **Speak replies** on, each line is spoken as soon as
+it's written (Fish Audio, emoji-derived expression cues); **▶ Speak** replays ("Show voice script" displays the cued text).
 
 **Personas:** click **+ New**, upload a WhatsApp export (chat → ⋮ → More → Export chat → Without media),
 pick which participant the persona is, choose a voice (▶ Preview to listen), confirm consent, and create. The chat is sanitized (phone numbers,

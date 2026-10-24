@@ -42,6 +42,11 @@ gemini-3.1-pro-preview · gemini-2.5-pro/flash/flash-lite · gemini-embedding-2 
 
 ## Gotchas
 
+- **Empty replies happen:** a stream can end with no text and `finish_reason=MALFORMED_RESPONSE`
+  (seen 1 in 6 runs at thinking=low, max_output_tokens=1024). `stream_reply` retries once.
+- `thinking_level="low"` on flash-lite still spends up to ~370 thought tokens on persona prompts → latency
+  spikes; `minimal` is steadier with the same style (D-017).
+
 - **`gemini-embedding-2` embeds ONE text per call.** A list of texts returns a single merged vector;
   a list of `Content`s errors ("only supports one content at a time"). Use parallel calls (16 → ~23 texts/s).
   Batch-capable alternatives measured slower: text-embedding-005 (50 in 3.6 s), gemini-embedding-001 (50 in 14 s).

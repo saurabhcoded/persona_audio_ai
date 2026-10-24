@@ -149,7 +149,7 @@ data/personas/<id>/
 | `POST /personas/{id}/build` | — | `{style_stats, card, emoji_map, pairs_indexed}` |
 | `GET/PUT /personas/{id}/card` | card JSON | card |
 | `POST /personas/{id}/voice` | `{reference_id}` or multipart clips + transcripts | `VoiceConfig` |
-| `POST /chat/stream` *(built)* | `{persona_id, turns: [{role: user\|persona, text}]}` | SSE: `delta {text}`… then `done {bubbles, tts_text}` or `error {message}` |
+| `POST /chat/stream` *(built)* | `{persona_id, turns: [{role: user\|persona, text}], speak?: bool}` | SSE: `delta {text}`… `done {bubbles, tts_text}` or `error {message}`; with `speak`: `audio {index, format, audio}` / `audio_error {index, message}` per line, in order, interleaved |
 | `POST /tts` *(built)* | `{text, persona_id?, voice_id?}` (`tts_text` with cues; `voice_id` catalog-only, overrides persona) | `audio/mpeg` bytes |
 | `GET /voices` *(built)* | — | voice catalog `[{id, name, gender, language, description}]` |
 

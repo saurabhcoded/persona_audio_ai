@@ -63,6 +63,16 @@ Open questions (OQ-*) mirror `docs/requirements/product-requirements.md` §9.
   Boy Hindi. Stored as `persona.voice_id`; `POST /tts` accepts `voice_id` (catalog-only) for previews.
   Cloning from the persona's own voice notes stays future work (FR-VOICE-02).
 
+- **D-016 · 2026-10-24 · accepted** — Speech streams with the text: `POST /chat/stream` with `speak: true`
+  sends each finished line to Fish as soon as the model writes it (`app/chat/speaker.py`, ≤2 parallel TTS calls),
+  and emits `audio {index, format, audio(base64)}` / `audio_error {index}` events in line order in the same SSE
+  stream. The browser plays clips back to back (`frontend/src/audioQueue.js`) and keeps them for replay.
+  Same output guard + emoji→cue conversion per line as the final `tts_text`. Pending TTS is cancelled if the
+  client disconnects. *Why not Fish websocket streaming:* lines are short (~0.3–0.6 s to synthesize), so
+  per-line HTTP gives most of the gain without MediaSource-based partial-mp3 playback; revisit for long replies.
+- **D-017 · 2026-10-24 · accepted** — Chat model thinking level `minimal` (was `low`): same style, first-token
+  p50 0.77 s / max 0.94 s vs low 0.82 s / 1.96 s. Empty model replies are retried once.
+
 ## Proposed (need user confirmation)
 
 - **D-103 · proposed** — Topic classifier: cheap external LLM on already-redacted text; Llama Guard local as

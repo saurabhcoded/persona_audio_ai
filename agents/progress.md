@@ -10,6 +10,7 @@ Next steps:
 2. Voice cloning from the persona's own voice notes (FR-VOICE-02/03). Voice choice from a catalog is done (D-015);
    changing a persona's voice after creation isn't in the UI yet.
 3. Mood detection of the user's message (FR-EMO-04); session summary (FR-CHAT-05).
+   Cold first request took ~4 s to first text (client init + ADC token + embedding); consider warming at startup.
 4. Eval harness (FR-EVAL-*): hold-out pairs + blind sheet.
 
 - 2026-10-24: switched to uv (D-011). Verified `uv run main.py` locally (start, reload, shutdown).
@@ -24,6 +25,8 @@ Next steps:
   - `app/persona/` pairs, stats, index (numpy cosine), builder (argon card + emoji map, gemini-embedding-2) — FR-BLD-01..05, FR-EMO-01
   - `app/storage/personas.py` on-disk store; routes: GET/DELETE /personas/{id}, POST /personas/participants, POST /personas (202)
   - Frontend: persona select, New persona panel, build polling, persona card panel, delete
+  - Speech streams with the text: per-line TTS in the SSE stream, browser audio queue, replay from clips (D-016);
+    chat thinking=minimal + empty-reply retry (D-017). Live: first audio ~0.25–0.5 s after the line is written
   - Voice picker at creation (catalog + ▶ Preview), persona voice used for TTS, 429 retry (D-015)
   - 64 tests (incl. privacy regression). Live: 652-msg synthetic chat built in 12.8 s; chat first token 1.2–1.6 s
 
@@ -51,7 +54,7 @@ Next steps:
 - [~] **M4** Expressive TTS — cues, validator, Fish TTS done; per-persona voice attach/clone pending
 - [~] **M5** Frontend — personas, create/report, chat with audio done; review queue UI pending
 - [ ] **M6** Eval harness, review queue UI, persona card editor
-- [ ] **M7** Streaming TTS
+- [x] **M7** Streaming TTS (per line, D-016)
 - [ ] **M8** Optional LoRA fine-tune
 
 ## Blockers / waiting on user
