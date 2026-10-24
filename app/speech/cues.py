@@ -59,6 +59,11 @@ DEFAULT_EMOJI_MAP: dict[str, EmojiCue] = {
 }
 
 # Sound-effect cues must be followed by matching text (Fish docs).
+# A single laugh emoji next to text reads as playful, not as an actual laugh:
+# voice it with a joking tone instead of inserting "hahaha" (user preference).
+LAUGH_CUES = {"laughing", "laughing loudly", "chuckling"}
+JOKING_CUE = "[joking]"
+
 SOUND_EFFECTS = {
     "laughing", "laughing loudly", "chuckling", "sobbing", "crying loudly", "sighing", "groaning",
     "panting", "gasping", "yawning", "snoring", "clear throat",
@@ -144,6 +149,8 @@ def _clause_to_tts(clause: str, emoji_map: dict[str, EmojiCue]) -> str:
     info = _lookup(top, emoji_map)
     if info is None:
         return text
+    if count == 1 and text and _cue_name(info.cue) in LAUGH_CUES:
+        return f"{JOKING_CUE} {text}"
     cue = _intensify(info.cue) if count >= 3 else info.cue
     body = text
     if (

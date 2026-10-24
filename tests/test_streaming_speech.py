@@ -4,6 +4,7 @@ import base64
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import Settings, get_settings
 from app.llm.client import get_llm
 from app.main import app
 from app.speech.tts import get_optional_tts
@@ -11,7 +12,9 @@ from tests.test_chat import FakeLLM, FakeTTS, events
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
+    # Isolated data dir: never read or write the developer's real personas.
+    app.dependency_overrides[get_settings] = lambda: Settings(data_dir=str(tmp_path))
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -56,7 +59,7 @@ def test_each_line_is_spoken_in_order(client):
     assert all(base64.b64decode(a["audio"]) == b"ID3fake" for a in audio)
     assert audio[0]["format"] == "mp3"
     # Same guard + emoji->cue conversion as the final tts_text, line by line
-    assert tts.calls == ["[laughing] hahaha haan pakka", "[soft tone][empathetic] chal"]
+    assert tts.calls == ["[joking] haan pakka", "[soft tone][empathetic] chal"]
     done = next(d for e, d in evs if e == "done")
     assert done["tts_text"] == "\n".join(tts.calls)
 

@@ -10,7 +10,8 @@ in their cloned voice with expressive Fish Audio cues derived from their own emo
    classifier. Nothing reaches an external API, the vector store, or disk before the local steps.
 2. **No raw chat persisted.** Uploads go to a temp dir, deleted in `finally`.
 3. **No message text in logs**, exceptions, reports or API error bodies. Log ids, counts, timings.
-4. **Synthetic test data only.** No real chats, names, numbers in `tests/`, docs, or commits.
+4. **Synthetic test data only.** Tests must use a `tmp_path` data dir (override `get_settings`), never the real `data/`.
+    No real chats, names, numbers in `tests/`, docs, or commits.
 5. **Consent gate:** voice cloning and persona build require `persona.consent.confirmed`.
 6. **Fish cues use S2 bracket syntax** `[happy]`, never S1 parentheses. See `knowledge/fish-audio.md`.
 7. **Never commit** `.env`, `data/`, uploads, voice clips.

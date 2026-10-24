@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.chat.service import PrefixStripper
+from app.core.config import Settings, get_settings
 from app.llm.client import get_llm
 from app.main import app
 from app.speech.tts import get_tts
@@ -31,7 +32,9 @@ class FakeTTS:
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
+    # Isolated data dir: never read or write the developer's real personas.
+    app.dependency_overrides[get_settings] = lambda: Settings(data_dir=str(tmp_path))
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -72,7 +75,7 @@ def test_stream_emits_deltas_then_done(client):
     name, done = evs[-1]
     assert name == "done"
     assert done["bubbles"] == ["haan pakka 😂", "chal"]
-    assert done["tts_text"] == "[laughing] hahaha haan pakka\nchal"
+    assert done["tts_text"] == "[joking] haan pakka\nchal"
 
 
 def test_stream_reports_error_event(client):

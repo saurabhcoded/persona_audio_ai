@@ -30,6 +30,9 @@ Requirements: FR-CHAT-*, FR-TTS-*, FR-VOICE-*, FR-EMO-04, FR-GRD-08.
   (fallback to default map); remove emojis from text.
 - Cue goes at **sentence start**. Repeated ≥3 → intensity ("[very …]").
 - Emoji-only sentence → `{cue} {spoken_as}`.
+- **Single laugh emoji next to text → `[joking] text`** (no inserted "hahaha"), user preference (D-018).
+  Laugh = cue in `LAUGH_CUES` (laughing / laughing loudly / chuckling), so persona maps count too.
+  Two or more laugh emojis, or a lone laugh emoji, still voice a real laugh.
 - Text markers: `haha+`/`hehe` → ensure a `[laughing]`/`[chuckling]` cue before it; `hmm+` → `[break]` after.
 - `strip_cues(text)` for anything shown in UI.
 

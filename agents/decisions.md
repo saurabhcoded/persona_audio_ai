@@ -73,6 +73,10 @@ Open questions (OQ-*) mirror `docs/requirements/product-requirements.md` §9.
 - **D-017 · 2026-10-24 · accepted** — Chat model thinking level `minimal` (was `low`): same style, first-token
   p50 0.77 s / max 0.94 s vs low 0.82 s / 1.96 s. Empty model replies are retried once.
 
+- **D-018 · 2026-10-24 · accepted** (user preference) — A single laugh emoji attached to text is voiced with
+  `[joking]` instead of `[laughing] hahaha`; ≥2 laugh emojis or an emoji-only laugh keep the real laugh.
+  `[joking]` is free-form S2 (not in Fish's listed vocabulary) — verified it synthesizes.
+
 ## Proposed (need user confirmation)
 
 - **D-103 · proposed** — Topic classifier: cheap external LLM on already-redacted text; Llama Guard local as

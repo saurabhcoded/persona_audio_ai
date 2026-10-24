@@ -11,18 +11,26 @@ MAP = {
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("haan pakka 😂", "[laughing] hahaha haan pakka"),
         (
-            "haha 😂!",
+            "haan pakka 😂",
+            "[joking] haan pakka",
+        ),  # single laugh emoji + text: joking tone
+        (
+            "haan pakka 😂😂",
+            "[laughing] hahaha haan pakka",
+        ),  # two or more: a real laugh
+        (
+            "haha 😂😂!",
             "[laughing] haha!",
         ),  # existing laugh text satisfies the sound effect
         ("😂😂", "[laughing] hahaha"),  # emoji-only is spoken, not silent
+        ("😂", "[laughing] hahaha"),  # a lone laugh emoji is still a laugh
         ("kya hua 🫂", "[soft tone][empathetic] kya hua"),
         ("sad hu 😢😢😢", "[very sad] sad hu"),  # default map + repetition intensity
         ("ok 👍", "[indifferent] ok"),
         ("❤️", ""),  # nothing to say
         ("no emoji here", "no emoji here"),
-        ("arre 😂\nchal 🫂", "[laughing] hahaha arre\n[soft tone][empathetic] chal"),
+        ("arre 😂\nchal 🫂", "[joking] arre\n[soft tone][empathetic] chal"),
     ],
 )
 def test_emojis_to_cues(text, expected):
@@ -31,12 +39,18 @@ def test_emojis_to_cues(text, expected):
 
 def test_trailing_emoji_colours_its_own_clause():
     out = emojis_to_cues("tension mat le 😂 agli baar phod dena", MAP)
-    assert out == "[laughing] hahaha tension mat le agli baar phod dena"
+    assert out == "[joking] tension mat le agli baar phod dena"
 
 
 def test_persona_map_overrides_default():
-    custom = {"😂": EmojiCue(cue="[chuckling]", spoken_as="heh")}
-    assert emojis_to_cues("ok 😂", custom) == "[chuckling] heh ok"
+    custom = {"😂": EmojiCue(cue="[embarrassed]", spoken_as="hehe")}
+    assert emojis_to_cues("ok 😂", custom) == "[embarrassed] ok"
+
+
+def test_single_laugh_from_persona_map_is_joking_too():
+    custom = {"💀": EmojiCue(cue="[chuckling]", spoken_as="heh")}
+    assert emojis_to_cues("bas kar 💀", custom) == "[joking] bas kar"
+    assert emojis_to_cues("bas kar 💀💀", custom) == "[chuckling] heh bas kar"
 
 
 def test_validate_converts_s1_parentheses_and_caps_cues():

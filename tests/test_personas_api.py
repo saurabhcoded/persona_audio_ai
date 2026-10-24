@@ -156,7 +156,9 @@ def test_create_build_chat_delete(env):
     )
     assert "Aman: haan pakka 😂" in llm.systems[-1]
     done = json.loads(r.text.strip().split("\n\n")[-1].split("data: ", 1)[1])
-    assert done["tts_text"] == "[chuckling] heh haan"  # persona's own emoji map
+    assert (
+        done["tts_text"] == "[joking] haan"
+    )  # single laugh emoji (😂 maps to [chuckling])
 
     assert client.delete(f"/api/v1/personas/{pid}").status_code == 204
     assert client.get(f"/api/v1/personas/{pid}").status_code == 404
