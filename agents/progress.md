@@ -28,6 +28,10 @@ Next steps:
   → Confirm → Uber card.
 - [x] Voice management (D-023): change persona voice from the profile panel (saves + previews), Voices screen
   to add Fish voices by ID (validated, auto-named) / preview / remove custom. 118 tests; verified live in UI.
+- [x] Short forms (D-024): detection at build + re-detect, editor in the profile panel (toggle/edit/add/remove,
+  counts + example on hover), speak-in-full (default) / show-in-full options. 134 tests. Live: synthetic
+  Hinglish chat → 23 short forms detected in the 12 s build; replies keep "kb ka plan h?" on screen and
+  speak "kab ka plan hai?".
 - [ ] Next: "from here" via browser geolocation; model sometimes asks for home before checking other
   ambiguities (prompt asks it to call the tool first; not always followed); Gurugram "MG Road" heuristic gap.
 

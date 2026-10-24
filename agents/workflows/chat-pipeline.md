@@ -24,6 +24,13 @@ Requirements: FR-CHAT-*, FR-TTS-*, FR-VOICE-*, FR-EMO-04, FR-GRD-08.
 - Pseudonyms in context: instruct to refer to people naturally and never output placeholders.
 - Output only the message(s); multiple bubbles separated by newline if the persona bursts.
 
+## Short forms before cues
+
+- Spoken text per line = `emojis_to_cues(expand_shortforms(guard_reply(line)))` when the persona's
+  `expand_shortforms_in_speech` is on (D-024). Expansion runs before cue conversion so cue words are never
+  touched and laugh-text detection sees the expanded words. Display bubbles are expanded only with
+  `expand_shortforms_in_text`.
+
 ## Emoji → cue (`speech/cues.py`)
 
 - Split into sentences; per sentence: find emojis, pick dominant; cue from persona emoji map

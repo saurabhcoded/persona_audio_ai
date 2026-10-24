@@ -109,6 +109,15 @@ Open questions (OQ-*) mirror `docs/requirements/product-requirements.md` §9.
   Fish `voices.get`, name/gender/language from its title/tags/languages) into `DATA_DIR/voices.json`,
   listed after the built-ins, removable (`DELETE /voices/{id}`, built-ins protected). UI: sidebar → Voices.
 
+- **D-024 · 2026-10-24 · accepted** — Short forms ("r u", "h"=hai, "scn"=scene) per persona
+  (`app/persona/shortforms.py`). Detected at build (and on demand: `POST /personas/{id}/shortforms/detect`)
+  from the persona's own sanitized messages, ≥2 uses: a curated dictionary (ambiguous ones like n/m/pm/bc
+  excluded) + the build LLM judging the remaining frequent short tokens *in context* (each with a real example).
+  Editable list + two options (`PUT /personas/{id}/shortforms`): **expand in speech** (default on: applied
+  per line before emoji→cue conversion, so streamed audio and `tts_text` say "are you") and **expand in
+  text** (default off: their texting style stays on screen; applied to `done` bubbles). Re-detection merges,
+  keeping user edits and hand-added entries. Demo persona edits go to builtin overrides (store.update()).
+
 ## Proposed (need user confirmation)
 
 - **D-103 · proposed** — Topic classifier: cheap external LLM on already-redacted text; Llama Guard local as

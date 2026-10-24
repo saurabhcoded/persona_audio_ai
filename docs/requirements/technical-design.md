@@ -154,6 +154,8 @@ data/personas/<id>/
 | `GET /places` / `DELETE /places/{label}` *(branch)* | — | saved places `[{label, name, address}]` / `204` |
 | `GET /voices` *(built)* | — | built-in + custom voices `[{id, name, gender, language, description, custom}]` |
 | `POST /voices` / `DELETE /voices/{id}` *(branch)* | `{voice_id, name?}` | add a Fish voice by ID (422 bad/unknown id, 409 built-in) / remove a custom voice |
+| `PUT /personas/{id}/shortforms` *(branch)* | `{shortforms: [{short, full, enabled}], expand_shortforms_in_speech, expand_shortforms_in_text}` | persona detail |
+| `POST /personas/{id}/shortforms/detect` *(branch)* | — | persona detail (re-detected, user edits kept; 400 without a stored chat) |
 | `PATCH /personas/{id}/voice` *(branch)* | `{voice_id \| null}` | updated persona summary |
 
 Errors: `409` persona not built/voice missing, `422` validation, `403` voice action without consent.

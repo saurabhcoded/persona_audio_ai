@@ -80,6 +80,9 @@ it's written (Fish Audio, emoji-derived expression cues); **▶ Speak** replays 
 
 **Personas:** click **+ New**, upload a WhatsApp export (chat → ⋮ → More → Export chat → Without media),
 pick which participant the persona is, choose a voice (▶ Preview to listen), confirm consent, and create.
+Short forms from the chat ("r u", "kb", "h" = hai) are detected per persona and listed in its profile:
+by default the voice says them in full while the text keeps the persona's style; edit the list, add your
+own, or switch on "Show in full".
 Change a persona's voice any time from its profile panel. Add more Fish Audio voices under
 **Voices** (sidebar): paste a voice ID from its fish.audio URL; name and language are filled in. The chat is sanitized (phone numbers,
 emails, IDs, account/card numbers, links, other group members' names) before anything is stored; the
