@@ -1,7 +1,13 @@
-# Fish Audio API
+# Persona Voice
 
-FastAPI service with `.env`-based configuration (via `pydantic-settings`), a React + Vite
-single-page frontend, and Docker.
+Turn a WhatsApp chat into a **persona**: a chatbot that replies the way that person texts (their
+language mix, short forms, emojis, real past replies) and speaks in an expressive voice through Fish
+Audio, with laughs, sighs and tone taken from their own emoji habits. It can also plan Uber rides
+through Google Maps. Built with FastAPI, a React + Vite single-page frontend, Gemini on Vertex AI,
+and Cloud Run.
+
+**How it works:** [docs/architecture/README.md](docs/architecture/README.md) has diagrams of the
+persona building pipeline and the chat response pipeline.
 
 ## Layout
 

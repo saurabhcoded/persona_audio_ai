@@ -123,6 +123,14 @@ Open questions (OQ-*) mirror `docs/requirements/product-requirements.md` §9.
   instance, CPU always allocated. **Public URL by user's choice** — no app login yet (follow-up).
   Details: `agents/knowledge/deployment.md`.
 
+- **D-026 · 2026-10-24 · accepted** — Smoother speech. Measured: Fish clips carry ~50 ms leading and
+  100–150 ms trailing silence and differ by up to ~5 dB in loudness; one clip per bubble meant a tone reset
+  and an irregular gap at every bubble. Server (`LineSpeaker`): first line synthesized immediately, later lines
+  merged into one clip (full stops between bubbles; flush at `TTS_CHUNK_MAX_CHARS`=220 for long replies;
+  `TTS_MERGE_LINES=false` restores per-line). Browser (`audioQueue.js`): Web Audio player that trims edge
+  silence, levels each clip to ~-15 dBFS (peak-limited), fades edges (8 ms) and schedules clips gaplessly with
+  a fixed 140 ms pause. Verified in Chrome: clips levelled to -14.9 dB, gaps exactly 0.140 s.
+
 ## Proposed (need user confirmation)
 
 - **D-103 · proposed** — Topic classifier: cheap external LLM on already-redacted text; Llama Guard local as

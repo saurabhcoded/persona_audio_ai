@@ -18,6 +18,7 @@ how we build, what's decided, where we are.
 | [knowledge/deployment.md](knowledge/deployment.md) | Deploying / anything about the Cloud Run service. |
 | [knowledge/related-projects.md](knowledge/related-projects.md) | Looking for prior art / ideas. |
 
+Architecture overview with pipeline diagrams: [`docs/architecture/README.md`](../docs/architecture/README.md).
 Product requirements live in [`docs/requirements/`](../docs/requirements/README.md); requirement IDs
 (`FR-*`, `NFR-*`) referenced here come from there.
 

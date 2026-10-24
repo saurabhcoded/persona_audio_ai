@@ -86,6 +86,12 @@ multi-speaker `<|speaker:0|>` with `reference_id` array.
 - Each voice ≈ 1.5–2 s for a short Hinglish line from a cold call; inside a streamed reply, line audio
   arrived 0.25–0.6 s after the line was written (Boy Hindi, 3-line replies).
 
+## Clip characteristics (measured 2026-10-24, mp3 128 kbps)
+
+- Every clip starts with ~50 ms and ends with ~100–150 ms of silence; natural pauses inside a clip are
+  ~90–240 ms. Mean loudness varies per request (-12 to -17 dB seen) → level clips client-side (D-026).
+- Separate requests restart prosody; merge text into fewer requests where latency allows.
+
 ## Looking up a voice by ID
 
 - `await AsyncFishAudio.voices.get(id)` → `Voice` with `title`, `tags` (gender words like `female`/`male`

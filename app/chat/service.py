@@ -183,6 +183,8 @@ async def stream_reply(
             voice_id=persona.voice_id or settings.fish_default_voice_id,
             emoji_map=persona.emoji_map,
             prepare=speech_text,
+            merge_lines=settings.tts_merge_lines,
+            max_chunk_chars=settings.tts_chunk_max_chars,
             audio_format=settings.fish_tts_format,
             concurrency=settings.tts_stream_concurrency,
         )

@@ -99,3 +99,44 @@ def test_no_speech_unless_requested(client):
 def test_speak_without_fish_key_is_503(client):
     r = run(client, FakeLLM(["haan"]), None)
     assert r.status_code == 503
+
+
+# ---------- smoother speech: merged clips (D-026) ----------
+
+
+def run_with(client_fixture_path, llm, tts, **settings):
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        data_dir=str(client_fixture_path), **settings
+    )
+    app.dependency_overrides[get_llm] = lambda: llm
+    app.dependency_overrides[get_optional_tts] = lambda: tts
+    return events(TestClient(app).post("/api/v1/chat/stream", json=speak_body()))
+
+
+def test_first_line_alone_then_rest_merged_into_one_clip(tmp_path, client):
+    tts = FakeTTS()
+    evs = run_with(
+        tmp_path,
+        SlowLLM(["haan bhai\n", "kal pakka\n", "kahan milein?\n", "batata hu"]),
+        tts,
+    )
+    assert tts.calls == ["haan bhai", "kal pakka. kahan milein? batata hu"]
+    assert [d["index"] for e, d in evs if e == "audio"] == [0, 1]
+    names = [e for e, _ in evs]
+    last_delta = max(i for i, n in enumerate(names) if n == "delta")
+    assert (
+        names.index("audio") < last_delta
+    )  # first clip still arrives while text streams
+
+
+def test_long_replies_flush_merged_clips_at_the_char_limit(tmp_path, client):
+    tts = FakeTTS()
+    lines = ["one\n", "two two two\n", "three three\n", "four"]
+    run_with(tmp_path, FakeLLM(lines), tts, tts_chunk_max_chars=20)
+    assert tts.calls == ["one", "two two two. three three", "four"]
+
+
+def test_merging_can_be_turned_off(tmp_path, client):
+    tts = FakeTTS()
+    run_with(tmp_path, FakeLLM(["a\n", "b\n", "c"]), tts, tts_merge_lines=False)
+    assert tts.calls == ["a", "b", "c"]

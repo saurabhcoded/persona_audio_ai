@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     tts_max_chars: int = 1000
     # Parallel TTS calls per streamed reply (Fish limits concurrency per account)
     tts_stream_concurrency: int = 2
+    # Smoother speech: first line spoken at once, later lines merged into one clip (D-026)
+    tts_merge_lines: bool = True
+    tts_chunk_max_chars: int = 220
 
     # Location assist: Google Places API (New) + Routes API. Without an API key the calls use
     # gcloud Application Default Credentials, billed to gcp_project (or the ADC project).

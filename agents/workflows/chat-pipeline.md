@@ -56,4 +56,6 @@ Requirements: FR-CHAT-*, FR-TTS-*, FR-VOICE-*, FR-EMO-04, FR-GRD-08.
 - Voice: `reference_id` (persistent model) or `references=[ReferenceAudio(audio, text)]` (instant clone).
 - Pass the API key from `settings.fish_audio_api_key` explicitly (SDK default env var is `FISH_API_KEY`).
 - SDK is sync → call in threadpool from async routes.
-- Streaming: built per line (D-016) via `app/chat/speaker.py`; Fish websocket streaming only if replies get long.
+- Streaming: first line its own clip, later lines merged (D-016, D-026) via `app/chat/speaker.py`; the browser
+  trims, levels and gaplessly schedules clips (`frontend/src/audioQueue.js`). Fish websocket streaming only if
+  replies get long.
