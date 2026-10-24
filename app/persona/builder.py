@@ -8,6 +8,7 @@ from collections import defaultdict
 
 import emoji
 import numpy as np
+from fastapi import HTTPException
 
 from app.core.config import Settings
 from app.ingest.models import Message
@@ -15,6 +16,7 @@ from app.llm import prompts
 from app.llm.client import LLMClient
 from app.persona.models import Persona, ReplyExample
 from app.persona.pairs import build_pairs, to_bursts
+from app.persona.shortforms import detect_shortforms
 from app.persona.stats import compute_stats, describe
 from app.speech.cues import EmojiCue
 from app.storage.personas import PersonaStore
@@ -124,10 +126,11 @@ async def build_persona(
         pairs = build_pairs(bursts, sender)[-settings.persona_max_pairs :]
         store.save_messages(persona.id, messages)
 
-        card, emoji_map, vectors = await asyncio.gather(
+        card, emoji_map, vectors, shortforms = await asyncio.gather(
             _persona_card(llm, settings, persona.name, sender, messages, pairs),
             _emoji_map(llm, settings, persona.name, sender, messages),
             _embed_pairs(llm, settings, pairs),
+            detect_shortforms(llm, settings, persona.name, sender, messages),
         )
         store.save_index(persona.id, pairs, vectors)
         persona = persona.model_copy(
@@ -137,6 +140,7 @@ async def build_persona(
                 "style": describe(stats),
                 "stats": stats.model_dump(),
                 "emoji_map": emoji_map,
+                "shortforms": shortforms,
                 "tagline": f"From chat · {stats.messages} messages · {len(pairs)} reply examples",
             }
         )
@@ -149,4 +153,9 @@ async def build_persona(
                 "error": "Build failed. Check the server log and try again.",
             }
         )
-    store.save(persona)
+    try:
+        current = store.get(persona.id)
+    except HTTPException:
+        return  # deleted while building: don't bring it back
+    # Keep a voice the user picked while the build was running.
+    store.save(persona.model_copy(update={"voice_id": current.voice_id}))

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiPostBlob, apiPostForm } from "./api.js";
 import Icon from "./components/Icon.jsx";
+import VoiceSelect from "./components/VoiceSelect.jsx";
 
 export const PREVIEW_TEXT = "[happy] arre hello! [laughing] hahaha, kaisa hai tu?";
 
@@ -146,25 +147,7 @@ export default function NewPersona({ voices, onCreated, onCancel }) {
 
       <Step n={3} title="Choose a voice" done={!!voiceId}>
         <div className="voice-row">
-          <select
-            className="text-input"
-            value={voiceId}
-            onChange={(e) => setVoiceId(e.target.value)}
-            disabled={!voices.length}
-            aria-label="Voice"
-          >
-            {["female", "male"].map((g) => (
-              <optgroup key={g} label={g === "female" ? "Female" : "Male"}>
-                {voices
-                  .filter((v) => v.gender === g)
-                  .map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} · {v.language} · {v.description}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
+          <VoiceSelect voices={voices} value={voiceId} onChange={(v) => setVoiceId(v ?? "")} />
           <button type="button" className="ghost-btn" onClick={preview} disabled={!voiceId || previewing}>
             <Icon name={previewing ? "volume" : "play"} size={14} /> {previewing ? "Playing" : "Preview"}
           </button>

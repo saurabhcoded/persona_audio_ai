@@ -67,3 +67,14 @@ export async function apiStream(path, body, { onEvent, signal }) {
     }
   }
 }
+
+export async function apiSendJson(method, path, body) {
+  const res = await check(
+    await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
+  return res.status === 204 ? null : res.json();
+}

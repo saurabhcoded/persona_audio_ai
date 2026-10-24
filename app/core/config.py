@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     llm_chat_model: str = "gemini-3.5-flash-lite"
     llm_chat_thinking: Literal["minimal", "low", "medium", "high"] | None = "minimal"
     llm_chat_temperature: float = 0.9
+    # Chat with location tools: flash-lite skipped tool calls (0-1/5), 3.5-flash 12/12 at ~1.1 s
+    llm_tools_model: str = "gemini-3.5-flash"
     llm_build_model: str = "gemini-4-argon"
     llm_classify_model: str = "gemini-3.5-flash-lite"
     chat_max_history: int = 20
@@ -72,6 +74,25 @@ class Settings(BaseSettings):
     tts_max_chars: int = 1000
     # Parallel TTS calls per streamed reply (Fish limits concurrency per account)
     tts_stream_concurrency: int = 2
+
+    # Location assist: Google Places API (New) + Routes API. Without an API key the calls use
+    # gcloud Application Default Credentials, billed to gcp_project (or the ADC project).
+    location_assist: bool = True
+    google_maps_api_key: str | None = None
+    location_region: str = "in"
+    location_bias_lat: float = 28.6139  # New Delhi
+    location_bias_lng: float = 77.2090
+    location_bias_radius_m: int = 50000
+    # Cities checked when a generic area ("Sector 15", "MG Road") comes back without one
+    location_cities: list[str] = Field(
+        default_factory=lambda: [
+            "New Delhi",
+            "Noida",
+            "Gurugram",
+            "Faridabad",
+            "Ghaziabad",
+        ]
+    )
 
     @property
     def is_prod(self) -> bool:

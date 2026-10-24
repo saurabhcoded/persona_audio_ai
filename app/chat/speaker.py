@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import logging
+from collections.abc import Callable
 
 from app.guardrails.output import guard_reply
 from app.speech.cues import EmojiCue, emojis_to_cues
@@ -21,10 +22,12 @@ class LineSpeaker:
         emoji_map: dict[str, EmojiCue],
         audio_format: str,
         concurrency: int,
+        prepare: Callable[[str], str] | None = None,
     ):
         self.tts = tts
         self.voice_id = voice_id
         self.emoji_map = emoji_map
+        self.prepare = prepare or (lambda text: text)  # e.g. expand short forms
         self.audio_format = audio_format
         self._sem = asyncio.Semaphore(concurrency)
         self._pending = ""
@@ -43,7 +46,7 @@ class LineSpeaker:
 
     def _start(self, line: str) -> None:
         # Same guard + cue conversion as the final `done` text, line by line.
-        spoken = emojis_to_cues(guard_reply(line), self.emoji_map)
+        spoken = emojis_to_cues(self.prepare(guard_reply(line)), self.emoji_map)
         if spoken:
             self._tasks.append(asyncio.create_task(self._synthesize(spoken)))
 

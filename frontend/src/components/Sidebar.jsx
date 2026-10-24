@@ -3,7 +3,21 @@ import Icon from "./Icon.jsx";
 
 const STATUS_TEXT = { building: "Building…", failed: "Build failed" };
 
-export default function Sidebar({ personas, selectedId, chats, apiStatus, onSelect, onNew, open, onClose }) {
+const PLACE_ICON = { home: "🏠", office: "🏢", gym: "🏋️", college: "🎓", school: "🎒" };
+
+export default function Sidebar({
+  personas,
+  selectedId,
+  chats,
+  places,
+  onForgetPlace,
+  apiStatus,
+  onSelect,
+  onNew,
+  onVoices,
+  open,
+  onClose,
+}) {
   return (
     <aside className={`sidebar${open ? " open" : ""}`} aria-label="Personas">
       <div className="sidebar-head">
@@ -50,8 +64,36 @@ export default function Sidebar({ personas, selectedId, chats, apiStatus, onSele
         })}
       </ul>
 
+      {places.length > 0 && (
+        <section className="saved-places">
+          <h3>Saved places</h3>
+          <ul>
+            {places.map((p) => (
+              <li key={p.label} title={p.address}>
+                <span className="place-icon">{PLACE_ICON[p.label] ?? "📍"}</span>
+                <span className="place-text">
+                  <span className="place-label">{p.label}</span>
+                  <span className="place-address">{p.address}</span>
+                </span>
+                <button
+                  type="button"
+                  className="icon-btn small"
+                  onClick={() => onForgetPlace(p.label)}
+                  aria-label={`Forget ${p.label}`}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="sidebar-foot">
         <span className={`status-dot ${apiStatus}`} /> API {apiStatus}
+        <button type="button" className="foot-btn" onClick={onVoices}>
+          <Icon name="volume" size={15} /> Voices
+        </button>
       </div>
     </aside>
   );

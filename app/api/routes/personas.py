@@ -11,7 +11,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.config import Settings, get_settings
 from app.guardrails.pipeline import sanitize_chat
@@ -19,9 +19,10 @@ from app.ingest.models import Message
 from app.ingest.whatsapp import ExportError, parse_whatsapp, participants, read_export
 from app.llm.client import LLMDep
 from app.persona.builder import build_persona
-from app.persona.models import Persona
+from app.persona.models import Persona, ShortForm
+from app.persona.shortforms import detect_shortforms, merge_shortforms
 from app.speech.cues import EmojiCue
-from app.speech.voices import VOICES_BY_ID
+from app.speech.voices import VoiceLibraryDep
 from app.storage.personas import StoreDep
 
 router = APIRouter(tags=["personas"])
@@ -46,6 +47,9 @@ class PersonaDetail(PersonaSummary):
     report: dict | None
     emoji_map: dict[str, EmojiCue]
     created_at: datetime | None
+    shortforms: list[ShortForm]
+    expand_shortforms_in_speech: bool
+    expand_shortforms_in_text: bool
 
 
 class Participant(BaseModel):
@@ -109,6 +113,7 @@ async def create_persona(
     sender: Annotated[str, Form(min_length=1)],
     consent: Annotated[bool, Form()],
     file: Annotated[UploadFile, File()],
+    library: VoiceLibraryDep,
     voice_id: Annotated[str | None, Form()] = None,
     consent_basis: Annotated[str, Form()] = "persona consented",
 ) -> PersonaSummary:
@@ -117,7 +122,7 @@ async def create_persona(
         raise HTTPException(
             status_code=422, detail="Consent is required to create a persona"
         )
-    if voice_id and voice_id not in VOICES_BY_ID:
+    if voice_id and library.get(voice_id) is None:
         raise HTTPException(status_code=422, detail="Unknown voice")
     messages = await _read_messages(file, settings)
     counts = participants(messages)
@@ -148,6 +153,77 @@ async def create_persona(
     store.save(persona)
     background.add_task(build_persona, persona, clean, store, llm, settings)
     return _summary(persona)
+
+
+class VoiceChange(BaseModel):
+    voice_id: str | None  # None = Fish default voice
+
+
+@router.patch("/personas/{persona_id}/voice")
+async def change_persona_voice(
+    persona_id: str, body: VoiceChange, store: StoreDep, library: VoiceLibraryDep
+) -> PersonaSummary:
+    """Switch a persona's voice; the next spoken reply uses it."""
+    if body.voice_id and library.get(body.voice_id) is None:
+        raise HTTPException(status_code=422, detail="Unknown voice")
+    return _summary(store.set_voice(persona_id, body.voice_id))
+
+
+class ShortFormsUpdate(BaseModel):
+    shortforms: list[ShortForm] = Field(max_length=300)
+    expand_shortforms_in_speech: bool = True
+    expand_shortforms_in_text: bool = False
+
+
+def _detail(p: Persona) -> PersonaDetail:
+    return PersonaDetail.model_validate(p.model_dump())
+
+
+@router.put("/personas/{persona_id}/shortforms")
+async def update_shortforms(
+    persona_id: str, body: ShortFormsUpdate, store: StoreDep
+) -> PersonaDetail:
+    """Save the short-form list (edited, toggled, hand-added) and the expand options."""
+    seen: set[str] = set()
+    cleaned = []
+    for sf in body.shortforms:
+        short = sf.short.strip().lower()
+        if " " in short or short in seen:
+            raise HTTPException(
+                status_code=422, detail=f"Duplicate or invalid short form: {sf.short!r}"
+            )
+        seen.add(short)
+        cleaned.append(sf.model_copy(update={"short": short, "full": sf.full.strip()}))
+    persona = store.update(
+        persona_id,
+        {
+            "shortforms": [sf.model_dump() for sf in cleaned],
+            "expand_shortforms_in_speech": body.expand_shortforms_in_speech,
+            "expand_shortforms_in_text": body.expand_shortforms_in_text,
+        },
+    )
+    return _detail(persona)
+
+
+@router.post("/personas/{persona_id}/shortforms/detect")
+async def redetect_shortforms(
+    persona_id: str, store: StoreDep, llm: LLMDep, settings: SettingsDep
+) -> PersonaDetail:
+    """Find short forms in the persona's (sanitized) chat again, keeping the user's edits."""
+    persona = store.get(persona_id)
+    messages = store.load_messages(persona_id)
+    if not messages:
+        raise HTTPException(
+            status_code=400,
+            detail="This persona has no chat to detect short forms from",
+        )
+    detected = await detect_shortforms(
+        llm, settings, persona.name, persona.sender_name or persona.name, messages
+    )
+    merged = merge_shortforms(persona.shortforms, detected)
+    return _detail(
+        store.update(persona_id, {"shortforms": [sf.model_dump() for sf in merged]})
+    )
 
 
 @router.delete("/personas/{persona_id}", status_code=204)

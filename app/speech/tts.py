@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from fishaudio import AsyncFishAudio
-from fishaudio.exceptions import RateLimitError
+from fishaudio.exceptions import NotFoundError, RateLimitError
 
 from app.core.config import Settings, get_settings
 
@@ -33,6 +33,13 @@ class TTSClient:
                     raise
                 await asyncio.sleep(1 + attempt)
         raise AssertionError("unreachable")
+
+    async def get_voice(self, voice_id: str):
+        """The Fish voice model, or None if Fish doesn't know the ID."""
+        try:
+            return await self._client.voices.get(voice_id)
+        except NotFoundError:
+            return None
 
 
 @lru_cache

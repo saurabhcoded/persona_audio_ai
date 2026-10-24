@@ -41,11 +41,53 @@ class PersonaStore:
         stored.sort(
             key=lambda p: p.created_at.timestamp() if p.created_at else 0, reverse=True
         )
-        return stored + list(BUILTIN.values())
+        return stored + [self._builtin(pid) for pid in BUILTIN]
+
+    def _overrides_path(self) -> Path:
+        return self.root / "builtin_overrides.json"
+
+    def _builtin(self, persona_id: str) -> Persona:
+        """Built-in (demo) personas live in code; user changes (voice) are stored beside them."""
+        path = self._overrides_path()
+        overrides = (
+            json.loads(path.read_text()).get(persona_id) if path.is_file() else None
+        )
+        base = BUILTIN[persona_id].model_dump(mode="json")
+        return Persona.model_validate(base | (overrides or {}))
+
+    def update(self, persona_id: str, fields: dict) -> Persona:
+        """Change user-editable fields (JSON-able values). Built-in personas keep the
+        changes in builtin_overrides.json since their definition lives in code."""
+        if persona_id in BUILTIN:
+            path = self._overrides_path()
+            overrides = json.loads(path.read_text()) if path.is_file() else {}
+            overrides.setdefault(persona_id, {}).update(fields)
+            self.root.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(overrides, indent=2, ensure_ascii=False))
+            return self._builtin(persona_id)
+        persona = Persona.model_validate(
+            self.get(persona_id).model_dump(mode="json") | fields
+        )
+        self.save(persona)
+        return persona
+
+    def set_voice(self, persona_id: str, voice_id: str | None) -> Persona:
+        return self.update(persona_id, {"voice_id": voice_id})
+
+    def load_messages(self, persona_id: str) -> list[Message]:
+        """Sanitized messages saved at build time (empty for built-in personas)."""
+        if persona_id in BUILTIN:
+            return []
+        path = self._dir(persona_id) / "messages.jsonl"
+        if not path.is_file():
+            return []
+        return [
+            Message.model_validate_json(line) for line in path.read_text().splitlines()
+        ]
 
     def get(self, persona_id: str) -> Persona:
         if persona_id in BUILTIN:
-            return BUILTIN[persona_id]
+            return self._builtin(persona_id)
         path = self._dir(persona_id) / "persona.json"
         if not path.is_file():
             raise HTTPException(status_code=404, detail="Persona not found")

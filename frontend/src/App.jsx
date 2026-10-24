@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiDelete, apiGet, apiPostBlob, apiStream } from "./api.js";
+import { apiDelete, apiGet, apiPostBlob, apiSendJson, apiStream } from "./api.js";
 import { AudioQueue, base64ToBlob } from "./audioQueue.js";
 import Avatar, { Equalizer } from "./components/Avatar.jsx";
 import Icon from "./components/Icon.jsx";
 import PersonaPanel from "./components/PersonaPanel.jsx";
+import RideCard from "./components/RideCard.jsx";
 import Sidebar from "./components/Sidebar.jsx";
+import VoicesManager from "./components/VoicesManager.jsx";
 import NewPersona, { PREVIEW_TEXT } from "./NewPersona.jsx";
 
 const SELECTED_KEY = "persona-voice.selected";
@@ -39,9 +41,15 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(readSelected);
   const [detail, setDetail] = useState(null);
   const [voices, setVoices] = useState([]);
+  const [places, setPlaces] = useState([]);
+  // Draft ride per persona (from `ride_preview`), sent back until confirmed or replaced
+  const [pendingRides, setPendingRides] = useState({});
   const [apiStatus, setApiStatus] = useState("checking");
-  const [creating, setCreating] = useState(false);
-  // per-persona chat history: { [personaId]: [{ id, role, text, at, ttsText?, clips?, streaming?, error? }] }
+  const [view, setView] = useState("chat"); // chat | new | voices
+  const creating = view !== "chat";
+  const [savingVoice, setSavingVoice] = useState(false);
+  // per-persona chat history: { [personaId]: [{ id, role, text, at, ttsText?, clips?, rides?, choices?,
+  //   notes?, streaming?, error? }] }  rides/choices/notes come from location assist
   // clips = audio Blobs per line, streamed with the reply, kept for replay
   const [chats, setChats] = useState({});
   const [input, setInput] = useState("");
@@ -75,12 +83,23 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    loadPersonas();
+  const loadPlaces = useCallback(() => {
+    apiGet("/places")
+      .then(setPlaces)
+      .catch(() => setPlaces([]));
+  }, []);
+
+  const loadVoices = useCallback(() => {
     apiGet("/voices")
       .then(setVoices)
       .catch(() => setVoices([]));
-  }, [loadPersonas]);
+  }, []);
+
+  useEffect(() => {
+    loadPersonas();
+    loadPlaces();
+    loadVoices();
+  }, [loadPersonas, loadPlaces, loadVoices]);
 
   // Poll while a persona is building.
   useEffect(() => {
@@ -107,7 +126,7 @@ export default function App() {
     player.stop();
     setSelectedId(id);
     saveSelected(id);
-    setCreating(false);
+    setView("chat");
     setSidebarOpen(false);
   };
 
@@ -116,6 +135,9 @@ export default function App() {
 
   const patch = (personaId, id, fields) =>
     setMessages(personaId, (ms) => ms.map((m) => (m.id === id ? { ...m, ...fields } : m)));
+
+  const append = (personaId, id, key, value) =>
+    setMessages(personaId, (ms) => ms.map((m) => (m.id === id ? { ...m, [key]: [...(m[key] || []), value] } : m)));
 
   const addClip = (personaId, id, blob) =>
     setMessages(personaId, (ms) => ms.map((m) => (m.id === id ? { ...m, clips: [...(m.clips || []), blob] } : m)));
@@ -139,13 +161,29 @@ export default function App() {
     }
   };
 
+  // Preview playback is owned by "preview:<voiceId>" so lists can show which one is playing.
   const previewVoice = async (voiceId) => {
     player.stop();
-    setSpeakingId("preview");
+    const owner = `preview:${voiceId}`;
+    setSpeakingId(owner);
     try {
-      player.enqueue(await apiPostBlob("/tts", { voice_id: voiceId, text: PREVIEW_TEXT }), "preview");
+      player.enqueue(await apiPostBlob("/tts", { voice_id: voiceId, text: PREVIEW_TEXT }), owner);
     } catch {
       setSpeakingId(null);
+    }
+  };
+
+  const changeVoice = async (voiceId) => {
+    if (!persona) return;
+    setSavingVoice(true);
+    try {
+      await apiSendJson("PATCH", `/personas/${persona.id}/voice`, { voice_id: voiceId });
+      await loadPersonas();
+      if (voiceId) previewVoice(voiceId);
+    } catch (e) {
+      window.alert(`Couldn't change the voice: ${e.message}`);
+    } finally {
+      setSavingVoice(false);
     }
   };
 
@@ -177,7 +215,7 @@ export default function App() {
     try {
       await apiStream(
         "/chat/stream",
-        { persona_id: pid, turns: history, speak: speakLive },
+        { persona_id: pid, turns: history, speak: speakLive, pending_ride: pendingRides[pid] ?? null },
         {
           signal: controller.signal,
           onEvent: (event, data) => {
@@ -192,6 +230,17 @@ export default function App() {
               const blob = base64ToBlob(data.audio, data.format);
               addClip(pid, replyId, blob);
               player.enqueue(blob, replyId);
+            } else if (event === "ride_preview") {
+              append(pid, replyId, "rides", data);
+              setPendingRides((p) => ({ ...p, [pid]: data.draft }));
+            } else if (event === "location") {
+              append(pid, replyId, "rides", data);
+              setPendingRides(({ [pid]: _done, ...rest }) => rest);
+            } else if (event === "choices") {
+              patch(pid, replyId, { choices: data.options });
+            } else if (event === "saved_place") {
+              append(pid, replyId, "notes", `Saved ${data.label}: ${data.name}`);
+              loadPlaces();
             } else if (event === "audio_error") {
               patch(pid, replyId, { voiceNote: "Voice skipped a line." });
             } else if (event === "error") {
@@ -217,6 +266,15 @@ export default function App() {
   const stop = () => {
     abortRef.current?.abort();
     player.stop();
+  };
+
+  const forgetPlace = async (label) => {
+    if (!window.confirm(`Forget your saved place "${label}"?`)) return;
+    try {
+      await apiDelete(`/places/${encodeURIComponent(label)}`);
+    } finally {
+      loadPlaces();
+    }
   };
 
   const remove = async () => {
@@ -253,10 +311,16 @@ export default function App() {
         personas={personas}
         selectedId={persona?.id}
         chats={chats}
+        places={places}
+        onForgetPlace={forgetPlace}
         apiStatus={apiStatus}
         onSelect={select}
         onNew={() => {
-          setCreating(true);
+          setView("new");
+          setSidebarOpen(false);
+        }}
+        onVoices={() => {
+          setView("voices");
           setSidebarOpen(false);
         }}
         open={sidebarOpen}
@@ -277,7 +341,7 @@ export default function App() {
               </span>
             </button>
           )}
-          {creating && <span className="chat-name">Create a persona</span>}
+          {creating && <span className="chat-name">{view === "new" ? "Create a persona" : "Voices"}</span>}
           <span className="spacer" />
           {!creating && (
             <>
@@ -314,10 +378,18 @@ export default function App() {
           )}
         </header>
 
-        {creating ? (
+        {view === "voices" ? (
+          <VoicesManager
+            voices={voices}
+            previewingId={speakingId?.startsWith("preview:") ? speakingId.slice(8) : null}
+            onPreview={previewVoice}
+            onChanged={loadVoices}
+            onClose={() => setView("chat")}
+          />
+        ) : view === "new" ? (
           <NewPersona
             voices={voices}
-            onCancel={() => setCreating(false)}
+            onCancel={() => setView("chat")}
             onCreated={async (p) => {
               await loadPersonas();
               select(p.id);
@@ -369,8 +441,25 @@ export default function App() {
                         <i />
                       </div>
                     )}
+                    {m.rides?.map((ride, i) => (
+                      <RideCard key={i} ride={ride} />
+                    ))}
+                    {m.notes?.map((note) => (
+                      <span key={note} className="note-chip">
+                        <Icon name="pin" size={13} /> {note}
+                      </span>
+                    ))}
+                    {m.choices && m === messages.at(-1) && !streaming && (
+                      <div className="choice-chips">
+                        {m.choices.map((c) => (
+                          <button key={c} type="button" className="suggestion" onClick={() => send(null, c)}>
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {m.error && <p className="msg-error">{m.error}</p>}
-                    {!m.streaming && m.text && (
+                    {!m.streaming && (m.text || m.rides) && (
                       <div className="meta">
                         {clock(m.at)}
                         {m.ttsText && (
@@ -400,6 +489,34 @@ export default function App() {
               <div ref={endRef} />
             </section>
 
+            {pendingRides[persona?.id] && (
+              <div className="pending-bar">
+                <span className="pending-text">
+                  <Icon name="map" size={15} />
+                  <span>
+                    Ride draft: <strong>{pendingRides[persona.id].origin_name}</strong> →{" "}
+                    <strong>{pendingRides[persona.id].destination_name}</strong>
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="primary-btn small"
+                  disabled={streaming}
+                  onClick={() => send(null, "Confirm ✅")}
+                >
+                  Confirm ✅
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn small"
+                  disabled={streaming}
+                  onClick={() => setPendingRides(({ [persona.id]: _gone, ...rest }) => rest)}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
             <form className="composer" onSubmit={send}>
               <input
                 ref={inputRef}
@@ -428,8 +545,12 @@ export default function App() {
         detail={detail}
         voice={voice}
         speaking={personaSpeaking}
-        previewing={speakingId === "preview"}
+        voices={voices}
+        previewing={speakingId === `preview:${voice?.id}`}
         onPreviewVoice={previewVoice}
+        onChangeVoice={changeVoice}
+        savingVoice={savingVoice}
+        onDetailChange={setDetail}
         onDelete={remove}
         open={panelOpen}
         onClose={() => setPanelOpen(false)}

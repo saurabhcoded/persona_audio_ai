@@ -358,7 +358,9 @@ dependencies = [
     { name = "emoji" },
     { name = "fastapi" },
     { name = "fish-audio-sdk" },
+    { name = "google-auth" },
     { name = "google-genai" },
+    { name = "httpx" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -368,7 +370,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -378,7 +379,9 @@ requires-dist = [
     { name = "emoji", specifier = ">=2.16" },
     { name = "fastapi", specifier = ">=0.115,<1.0" },
     { name = "fish-audio-sdk", specifier = ">=1.3" },
+    { name = "google-auth", specifier = ">=2.62.0" },
     { name = "google-genai", specifier = ">=2.33" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", specifier = ">=2.6" },
@@ -388,7 +391,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.27" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.7" },
 ]

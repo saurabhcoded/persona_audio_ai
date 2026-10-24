@@ -40,6 +40,22 @@ gemini-3.1-pro-preview · gemini-2.5-pro/flash/flash-lite · gemini-embedding-2 
 | gemini-4-argon | default / low | 3.1–6.3 s | Most in-character (short teasing bursts); **chosen for offline build** |
 | gemini-3.8-flash | default | >8 s, timed out | Avoid for chat |
 
+## Function calling (persona prompt + location tools, 2026-10-24)
+
+| Model / thinking | Tool called when it should | Latency |
+|---|---|---|
+| gemini-3.5-flash-lite minimal | 0/5 (says "ruk plan karta hu" instead) | 1.2 s |
+| gemini-3.5-flash-lite low | 1/5 | 1.0 s |
+| **gemini-3.5-flash minimal** | **12/12** (3 scenarios) | **~1.1 s** |
+| gemini-3.5-flash low | 8/12 (skipped first ask) | 1.3–2.3 s |
+| gemini-4-argon low | 5/5 | 4.3 s |
+| gemini-3.7-flash low | 12/12 | 6–17 s |
+
+- Streaming with tools: read `chunk.candidates[0].content.parts`; function-call parts carry a
+  `thought_signature` that must be sent back unchanged in the next request's model turn.
+- Vertex returns **429 RESOURCE_EXHAUSTED** under bursts (embedding + chat in quick succession). The
+  request is sent when stream iteration starts, so retries must wrap the first chunk (`LLMClient._stream`).
+
 ## Gotchas
 
 - **Empty replies happen:** a stream can end with no text and `finish_reason=MALFORMED_RESPONSE`

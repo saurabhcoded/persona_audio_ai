@@ -16,6 +16,21 @@ Next steps:
 - 2026-10-24: switched to uv (D-011). Verified `uv run main.py` locally (start, reload, shutdown).
   Docker image NOT yet rebuilt/verified with uv (no Docker daemon available in that session).
 
+## Branch `feature/location-assist` (2026-10-24, uncommitted until the user asks)
+
+- [x] Location assist (D-019, D-020): Places + Routes via ADC, place resolution with ambiguity options,
+  saved places, `plan_ride`/`save_place` tools in the chat stream, ride card (Open in Uber, Google Maps),
+  choice chips, saved-place note, sidebar saved places. 85 tests. Live: New Delhi→Faridabad card in 3.3 s
+  (cold); home save + ride in one turn; normal chat first text unchanged (~0.9 s).
+- [x] Follow-ups + confirmation (D-021, D-022): whole cities rejected as too broad, all unclear parts asked
+  together, draft card + Confirm/Cancel bar, server-side confirmation, tools model 3.5-flash, stream 429 retry.
+  106 tests. Live UI: cities → ask exact spots → CP→Sector 15 Faridabad draft → "noida wala" → new draft
+  → Confirm → Uber card.
+- [x] Voice management (D-023): change persona voice from the profile panel (saves + previews), Voices screen
+  to add Fish voices by ID (validated, auto-named) / preview / remove custom. 118 tests; verified live in UI.
+- [ ] Next: "from here" via browser geolocation; model sometimes asks for home before checking other
+  ambiguities (prompt asks it to call the tool first; not always followed); Gurugram "MG Road" heuristic gap.
+
 ## Milestones
 
 - [x] **Persona management** (2026-10-24) — create persona from name + WhatsApp .txt/.zip, pick participant,

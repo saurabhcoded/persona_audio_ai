@@ -77,6 +77,38 @@ Open questions (OQ-*) mirror `docs/requirements/product-requirements.md` §9.
   `[joking]` instead of `[laughing] hahaha`; ≥2 laugh emojis or an emoji-only laugh keep the real laugh.
   `[joking]` is free-form S2 (not in Fish's listed vocabulary) — verified it synthesizes.
 
+- **D-019 · 2026-10-24 · accepted** (branch `feature/location-assist`) — Location assist via **Gemini function
+  calling inside the persona chat stream**: tools `plan_ride(origin, destination)` and `save_place(label, place)`
+  (`app/location/assistant.py`); up to 3 tool rounds per reply; Gemini 3 call parts are echoed back whole
+  (thought signatures). Server resolves places (saved labels → `place_id:` → Places text search → own
+  ambiguity check) so the model only decides *when* to call and *what to ask*. Model sees labels/names and
+  route numbers, never saved addresses; full addresses + deep links go to the UI as `location` /
+  `choices` / `saved_place` SSE events. Ride = Routes API distance + traffic time + Uber universal link
+  (no fares). Google auth via gcloud ADC (APIs enabled on eseller-ai with user approval).
+- **D-020 · 2026-10-24 · accepted** — Saved places are per user, not per persona: `DATA_DIR/places.json`,
+  saved by telling any persona ("ghar sector 21C faridabad hai"), listed/deleted in the sidebar
+  (`GET /places`, `DELETE /places/{label}`). Labels normalized (my/mera/ghar→home, work→office).
+
+- **D-021 · 2026-10-24 · accepted** (user requirement: "ask proper details before finalising") — Rides are
+  two-step. (1) Exact places only: a whole city/district/PIN (`BROAD_TYPES`) is `too_broad` and the persona
+  asks for an area/landmark/address; everything unclear is reported together. (2) `plan_ride(confirmed=false)`
+  emits `ride_preview` (draft card, no links) + `draft` refs; the client keeps it and sends `pending_ride`
+  with the next message. A plain yes (`is_confirmation`: "Confirm ✅", "haan book kar do", "ok") confirms
+  **server-side** (no model call needed) and emits the final `location` card; anything else goes to the
+  model with the pending draft in the prompt. *Why server-side:* the model announced "abhi karta hu"
+  without calling the tool. Refs use labels for saved places, so addresses still never reach the model.
+- **D-022 · 2026-10-24 · accepted** — Chat with location tools uses `LLM_TOOLS_MODEL=gemini-3.5-flash`
+  (minimal thinking). Measured tool-call rate on persona prompts: flash-lite minimal 0/5, flash-lite low 1/5,
+  3.5-flash minimal 12/12 (~1.1 s), argon 5/5 (~4.3 s), 3.7-flash slow (6–17 s). Chat streams now retry
+  429/500/503 when nothing has been streamed yet (a Vertex 429 broke a live confirm turn).
+
+- **D-023 · 2026-10-24 · accepted** — Voice management. Persona voice can be changed any time
+  (`PATCH /personas/{id}/voice`, picker in the profile panel; demo persona's change stored in
+  `personas/builtin_overrides.json`; a build in progress keeps a voice changed meanwhile and doesn't recreate
+  a persona deleted mid-build). Custom voices are added by Fish voice ID (`POST /voices` → validated with
+  Fish `voices.get`, name/gender/language from its title/tags/languages) into `DATA_DIR/voices.json`,
+  listed after the built-ins, removable (`DELETE /voices/{id}`, built-ins protected). UI: sidebar → Voices.
+
 ## Proposed (need user confirmation)
 
 - **D-103 · proposed** — Topic classifier: cheap external LLM on already-redacted text; Llama Guard local as

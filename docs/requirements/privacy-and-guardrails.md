@@ -25,6 +25,7 @@ Status: Draft v0.1 · 2026-10-24
 | Persona card / emoji map | Yes | In prompts |
 | Voice clips | Yes, local | To Fish Audio (for cloning/TTS) |
 | Logs | Yes | — Only ids, counts, timings; **never message text** |
+| Saved places (home address…) | Yes, `DATA_DIR/places.json` | To Google Places/Routes only to plan a route; **never to the LLM** (it sees the label "home") |
 
 ## 3. Sanitization pipeline (`app/guardrails/pipeline.py`)
 

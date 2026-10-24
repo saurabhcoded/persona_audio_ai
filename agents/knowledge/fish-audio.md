@@ -86,6 +86,13 @@ multi-speaker `<|speaker:0|>` with `reference_id` array.
 - Each voice ≈ 1.5–2 s for a short Hinglish line from a cold call; inside a streamed reply, line audio
   arrived 0.25–0.6 s after the line was written (Boy Hindi, 3-line replies).
 
+## Looking up a voice by ID
+
+- `await AsyncFishAudio.voices.get(id)` → `Voice` with `title`, `tags` (gender words like `female`/`male`
+  plus style tags), `languages` (ISO codes, e.g. `["hi"]`), `state` (`trained`), `visibility`.
+- Unknown or malformed IDs → `fishaudio.exceptions.NotFoundError` (HTTP 404 "Model not found").
+- IDs are 32 lowercase hex chars — the last part of the voice's fish.audio URL.
+
 ## Voice cloning
 
 Instant: pass `references` (clean clip + transcript) per request. Persistent: create a voice model

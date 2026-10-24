@@ -1,5 +1,7 @@
 import Avatar, { Equalizer } from "./Avatar.jsx";
 import Icon from "./Icon.jsx";
+import ShortformsEditor from "./ShortformsEditor.jsx";
+import VoiceSelect from "./VoiceSelect.jsx";
 
 // "- **Language:** writes in Hinglish" -> { title: "Language", body: "writes in Hinglish" }
 function cardItems(card) {
@@ -29,8 +31,12 @@ export default function PersonaPanel({
   detail,
   voice,
   speaking,
+  voices,
   previewing,
   onPreviewVoice,
+  onChangeVoice,
+  savingVoice,
+  onDetailChange,
   onDelete,
   open,
   onClose,
@@ -60,16 +66,29 @@ export default function PersonaPanel({
             persona.tagline
           )}
         </p>
-        <button
-          type="button"
-          className="voice-chip"
-          onClick={() => voice && onPreviewVoice(voice.id)}
-          disabled={!voice || previewing}
-          title={voice ? "Preview this voice" : "Uses the Fish Audio default voice"}
-        >
-          <Icon name={previewing ? "volume" : "play"} size={14} />
-          {voice ? `${voice.name} · ${voice.language}` : "Default voice"}
-        </button>
+        <div className="voice-picker">
+          <Icon name="volume" size={15} />
+          <VoiceSelect
+            voices={voices}
+            value={persona.voice_id}
+            onChange={onChangeVoice}
+            allowDefault
+            compact
+            disabled={savingVoice}
+            className="voice-picker-select"
+          />
+          <button
+            type="button"
+            className="icon-btn small"
+            onClick={() => voice && onPreviewVoice(voice.id)}
+            disabled={!voice || previewing}
+            title={voice ? "Preview this voice" : "Uses the Fish Audio default voice"}
+            aria-label="Preview voice"
+          >
+            <Icon name={previewing ? "volume" : "play"} size={13} />
+          </button>
+        </div>
+        {savingVoice && <span className="hint">Saving voice…</span>}
       </section>
 
       {persona.status === "building" && (
@@ -115,6 +134,8 @@ export default function PersonaPanel({
           </div>
         </section>
       )}
+
+      {detail && <ShortformsEditor persona={persona} detail={detail} onSaved={onDetailChange} />}
 
       {items.length > 0 && (
         <section className="panel-section">

@@ -32,7 +32,7 @@ in their cloned voice with expressive Fish Audio cues derived from their own emo
 - Async routes; wrap blocking SDK calls with `run_in_threadpool` if the SDK is sync.
 - Frontend: React + Vite, call the backend only through `frontend/src/api.js`. Components live in
   `frontend/src/components/`; colours only via the CSS tokens in `index.css` (light + dark), no hard-coded colours
-  in components (the avatar identity gradients in `Avatar.jsx` are the one exception). Check UI changes at 1440px, ~1000px and 390px wide, light and dark.
+  in components (exceptions: avatar identity gradients in `Avatar.jsx`, Uber's black/white brand button). Check UI changes at 1440px, ~1000px and 390px wide, light and dark.
 - **Python tooling is uv.** Dependencies only via `uv add <pkg>` / `uv add --dev <pkg>` (updates
   `pyproject.toml` + `uv.lock`; commit both). Never `pip install`, never hand-edit `uv.lock`, no
   `requirements*.txt`. Run things with `uv run …` (`uv run main.py`, `uv run pytest`).

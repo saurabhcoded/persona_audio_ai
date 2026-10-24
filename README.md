@@ -79,14 +79,23 @@ synthetic demo persona. Replies stream in and, with **Speak replies** on, each l
 it's written (Fish Audio, emoji-derived expression cues); **▶ Speak** replays ("Show voice script" displays the cued text).
 
 **Personas:** click **+ New**, upload a WhatsApp export (chat → ⋮ → More → Export chat → Without media),
-pick which participant the persona is, choose a voice (▶ Preview to listen), confirm consent, and create. The chat is sanitized (phone numbers,
+pick which participant the persona is, choose a voice (▶ Preview to listen), confirm consent, and create.
+Change a persona's voice any time from its profile panel. Add more Fish Audio voices under
+**Voices** (sidebar): paste a voice ID from its fish.audio URL; name and language are filled in. The chat is sanitized (phone numbers,
 emails, IDs, account/card numbers, links, other group members' names) before anything is stored; the
 uploaded file itself is never saved. Not yet removed: names of people who are only mentioned in messages,
 and sensitive topics (see `agents/progress.md`). The build (style stats, persona card, emoji→voice map, reply index) runs in the background,
 usually under a minute, then select the persona and chat. Data lives in `DATA_DIR` (`data/`, git-ignored).
 
+**Location assist:** ask any persona for a ride: *"new delhi se faridabad uber dekh"* or *"mere ghar se
+sector 15"*. It first collects exact details: a city alone isn't enough, so it asks for the area or landmark,
+which Sector 15, or where home is, and remembers places you tell it ("ghar sector 21C faridabad hai";
+saved places show in the sidebar). Then it shows a **draft** (pickup, drop, distance, time with live
+traffic) for you to check; after you tap **Confirm** (or say "haan"), it shows the final card with
+**Open in Uber** (pickup/drop pre-filled) and **Google Maps**. Uses gcloud credentials; the Places and Routes APIs must be enabled on the project.
+
 API: `GET/POST /api/v1/personas`, `POST /api/v1/personas/participants`, `GET/DELETE /api/v1/personas/{id}`,
-`POST /api/v1/chat/stream` (SSE), `POST /api/v1/tts`, `GET /api/v1/voices`.
+`POST /api/v1/chat/stream` (SSE), `POST /api/v1/tts`, `GET /api/v1/voices`, `GET/DELETE /api/v1/places`.
 Project docs: `docs/requirements/`, agent steering: `agents/`.
 
 Health check: `GET /api/v1/health`. `/docs` and `/redoc` are disabled when `ENVIRONMENT=prod`.

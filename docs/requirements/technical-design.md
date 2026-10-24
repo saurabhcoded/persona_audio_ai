@@ -149,9 +149,12 @@ data/personas/<id>/
 | `POST /personas/{id}/build` | — | `{style_stats, card, emoji_map, pairs_indexed}` |
 | `GET/PUT /personas/{id}/card` | card JSON | card |
 | `POST /personas/{id}/voice` | `{reference_id}` or multipart clips + transcripts | `VoiceConfig` |
-| `POST /chat/stream` *(built)* | `{persona_id, turns: [{role: user\|persona, text}], speak?: bool}` | SSE: `delta {text}`… `done {bubbles, tts_text}` or `error {message}`; with `speak`: `audio {index, format, audio}` / `audio_error {index, message}` per line, in order, interleaved |
+| `POST /chat/stream` *(built)* | `{persona_id, turns: [{role: user\|persona, text}], speak?: bool, pending_ride?: {origin_ref, destination_ref, origin_name, destination_name}}` | SSE: `delta {text}`… `done {bubbles, tts_text}` or `error {message}`; location assist adds `ride_preview {draft card, draft refs}`, `location {confirmed ride card}`, `choices {options}`, `saved_place {label, name, address}`; with `speak`: `audio {index, format, audio}` / `audio_error {index, message}` per line, in order, interleaved |
 | `POST /tts` *(built)* | `{text, persona_id?, voice_id?}` (`tts_text` with cues; `voice_id` catalog-only, overrides persona) | `audio/mpeg` bytes |
-| `GET /voices` *(built)* | — | voice catalog `[{id, name, gender, language, description}]` |
+| `GET /places` / `DELETE /places/{label}` *(branch)* | — | saved places `[{label, name, address}]` / `204` |
+| `GET /voices` *(built)* | — | built-in + custom voices `[{id, name, gender, language, description, custom}]` |
+| `POST /voices` / `DELETE /voices/{id}` *(branch)* | `{voice_id, name?}` | add a Fish voice by ID (422 bad/unknown id, 409 built-in) / remove a custom voice |
+| `PATCH /personas/{id}/voice` *(branch)* | `{voice_id \| null}` | updated persona summary |
 
 Errors: `409` persona not built/voice missing, `422` validation, `403` voice action without consent.
 
