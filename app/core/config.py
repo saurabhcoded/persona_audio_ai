@@ -44,6 +44,33 @@ class Settings(BaseSettings):
     secret_key: str = "change-me"
     fish_audio_api_key: str | None = None
 
+    # LLM: Gemini on Vertex AI, authenticated via gcloud Application Default Credentials.
+    # gcp_project falls back to the ADC / gcloud default project when unset.
+    gcp_project: str | None = None
+    gcp_location: str = "global"
+    llm_chat_model: str = "gemini-3.5-flash-lite"
+    llm_chat_thinking: Literal["minimal", "low", "medium", "high"] | None = "low"
+    llm_chat_temperature: float = 0.9
+    llm_build_model: str = "gemini-4-argon"
+    llm_classify_model: str = "gemini-3.5-flash-lite"
+    chat_max_history: int = 20
+
+    # Personas: storage, upload limits, retrieval
+    data_dir: str = "data"
+    upload_max_mb: int = 25
+    persona_min_messages: int = 30
+    persona_max_pairs: int = 3000  # most recent reply pairs embedded per persona
+    embedding_model: str = "gemini-embedding-2"
+    embedding_dim: int = 768
+    embedding_concurrency: int = 16
+    retrieval_pairs_k: int = 12
+
+    # Fish Audio TTS
+    fish_tts_model: str = "s2.1-pro"
+    fish_tts_format: Literal["mp3", "wav", "opus"] = "mp3"
+    fish_default_voice_id: str | None = None
+    tts_max_chars: int = 1000
+
     @property
     def is_prod(self) -> bool:
         return self.environment == "prod"

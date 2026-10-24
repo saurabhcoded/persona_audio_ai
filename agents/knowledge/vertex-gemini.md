@@ -42,9 +42,20 @@ gemini-3.1-pro-preview · gemini-2.5-pro/flash/flash-lite · gemini-embedding-2 
 
 ## Gotchas
 
+- **`gemini-embedding-2` embeds ONE text per call.** A list of texts returns a single merged vector;
+  a list of `Content`s errors ("only supports one content at a time"). Use parallel calls (16 → ~23 texts/s).
+  Batch-capable alternatives measured slower: text-embedding-005 (50 in 3.6 s), gemini-embedding-001 (50 in 14 s).
+- JSON output works on argon with `response_mime_type="application/json"` + `response_schema` (~3.3 s small).
+  Models drift from Fish vocabulary (`[sigh]` vs `[sighing]`) unless the prompt lists it — validate cues.
+
 - `gemini-4-argon`: `thinkingLevel: minimal` → 400 "unsupported"; `thinkingBudget` → 400 "not supported,
   use thinking level". Use `thinking_level="low"` (or omit).
 - `gemini-3.5-flash-lite` accepts `thinkingLevel` minimal/low and `thinkingBudget: 0`.
 - Few-shot prompts in `Them:/Name:` form make models echo the `Name:` prefix — strip a leading
   `"{name}:"` from each output line in post-processing.
+- With few examples (demo persona has 6) the model can copy an example almost verbatim when the
+  message is similar ("I got promoted" → the "I got the job" reply). Prompt now says "never copy an
+  example word for word"; M2's 8–15 retrieved examples should reduce this further.
+- Streaming via `await client.aio.models.generate_content_stream(...)` → `async for chunk` (`chunk.text`
+  may be None on the final chunk). Measured first token ~1.1–1.6 s on flash-lite.
 - Model returns bursts as newline-separated lines naturally when examples show bursts → use as bubbles.

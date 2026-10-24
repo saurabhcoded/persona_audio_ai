@@ -7,6 +7,8 @@
   --accent: #2563eb;
   --ok: #15803d;
   --bad: #b91c1c;
+  --bubble-user: #2563eb;
+  --bubble-persona: #eef0f4;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: light dark;
 }
@@ -21,6 +23,8 @@
     --accent: #60a5fa;
     --ok: #4ade80;
     --bad: #f87171;
+    --bubble-user: #1d4ed8;
+    --bubble-persona: #232831;
   }
 }
 
@@ -32,29 +36,9 @@ body {
   color: var(--text);
 }
 
-.container {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 48px 16px;
-}
-
 h1 { margin: 0 0 4px; }
 h2 { margin: 0; font-size: 1.1rem; }
-.muted { color: var(--muted); margin: 0 0 24px; }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
+.muted { color: var(--muted); margin: 0; }
 
 .badge {
   font-size: 0.8rem;
@@ -68,15 +52,6 @@ h2 { margin: 0; font-size: 1.1rem; }
 .badge.down { color: var(--bad); }
 .badge.checking { color: var(--muted); }
 
-.grid {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 8px 24px;
-  margin: 0 0 20px;
-}
-dt { color: var(--muted); }
-dd { margin: 0; }
-
 .error { color: var(--bad); }
 
 button {
@@ -89,3 +64,214 @@ button {
   cursor: pointer;
 }
 button:disabled { opacity: 0.6; cursor: default; }
+
+button.link {
+  background: none;
+  color: var(--accent);
+  padding: 2px 0;
+  font-size: 0.85rem;
+}
+
+/* ---------- chat ---------- */
+
+.chat-shell {
+  max-width: 720px;
+  height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-inline: 1px solid var(--border);
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-head h1 { font-size: 1.1rem; margin: 0; }
+.chat-head .muted { font-size: 0.85rem; }
+.who { flex: 1; min-width: 0; }
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  flex: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.toolbar label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg);
+}
+.empty { margin: auto; text-align: center; max-width: 320px; }
+
+.row { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+.row.user { align-self: flex-end; align-items: flex-end; }
+.row.persona { align-self: flex-start; align-items: flex-start; }
+
+.bubble {
+  padding: 8px 12px;
+  border-radius: 16px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.user .bubble { background: var(--bubble-user); color: #fff; border-bottom-right-radius: 4px; }
+.persona .bubble { background: var(--bubble-persona); border-bottom-left-radius: 4px; }
+.bubble.typing { color: var(--muted); font-style: italic; }
+
+.reply-tools { display: flex; flex-direction: column; gap: 4px; }
+.script {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: pre-wrap;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.row .error { margin: 0; font-size: 0.85rem; }
+
+.composer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.composer input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 16px;
+}
+.composer input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* ---------- personas ---------- */
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+button.link.danger { color: var(--bad); margin-left: auto; }
+
+.persona-select {
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  max-width: 100%;
+  cursor: pointer;
+}
+.tagline {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.banner {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-panel {
+  max-height: 40dvh;
+  overflow-y: auto;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.card-panel pre {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+.small { font-size: 0.8rem; }
+
+.new-persona {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.new-persona h2 { margin: 0; }
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.field > span, .field legend { font-weight: 600; font-size: 0.9rem; padding: 0; margin-bottom: 6px; }
+.field input:not([type="radio"]) {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.choice input { margin-top: 3px; }
+.consent { line-height: 1.4; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.field > label { font-weight: 600; font-size: 0.9rem; }
+.voice-row { display: flex; gap: 8px; }
+.voice-row select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.voice-row button { flex: none; }
+.voice-name { color: var(--muted); }

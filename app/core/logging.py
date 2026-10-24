@@ -11,3 +11,5 @@ def setup_logging() -> None:
         stream=sys.stdout,
         force=True,
     )
+    # The reloader logs every file change at DEBUG; keep it quiet even with LOG_LEVEL=DEBUG.
+    logging.getLogger("watchfiles").setLevel(logging.WARNING)

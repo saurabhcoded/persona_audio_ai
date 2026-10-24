@@ -46,10 +46,11 @@ Order matters: local steps run first so external services only ever see redacted
 | `[EMAIL]` | standard email |
 | `[UPI]` | `handle@okaxis/ybl/paytm/upi/apl/ibl/axl/sbi…` — checked **before** email |
 | `[PHONE]` | Indian mobile `(+91)?[6-9]\d{9}` with separators; international `+<cc>…` |
-| `[AADHAAR]` | 12 digits, first 2–9, optional spaces in 4-4-4 |
+| `[AADHAAR]` | exactly 12 digits (not part of a longer run), first 2–9, optional spaces in 4-4-4 |
 | `[PAN]` | `[A-Z]{5}\d{4}[A-Z]` |
 | `[IFSC]` | `[A-Z]{4}0[A-Z0-9]{6}` |
 | `[CARD]` | 13–19 digits with separators **and** Luhn-valid |
+| `[ACCOUNT]` | any remaining 9–18 digit run (bank accounts, non-Luhn card-like numbers) |
 | `[OTP]` | "otp/code/pin" near a 4–8 digit number |
 | `[SECRET]` | "password/pwd/pin is …" value |
 | `[URL]` | http(s) links |

@@ -6,6 +6,7 @@ services:
       target: dev
     image: fish-audio-api:dev
     volumes:
+      - ./main.py:/app/main.py
       - ./app:/app/app
       - ./tests:/app/tests
     restart: "no"

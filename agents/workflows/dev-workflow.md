@@ -11,11 +11,11 @@
    - One milestone sub-item at a time. Prefer a vertical slice (model → service → route → test).
 4. **Implement**
    - Follow conventions in `steering.md` (settings, routes, DI for external clients, prompts in one file).
-   - New dependency? Add to `requirements.txt` with a lower bound; note in `decisions.md` if non-obvious.
+   - New dependency? `uv add <pkg>` (or `uv add --dev`); note in `decisions.md` if non-obvious.
 5. **Test**
    - Synthetic fixtures in `tests/fixtures/`. Mock LLM/Fish/embeddings via `app.dependency_overrides`.
    - `make lint && make test`. For guardrail changes, the privacy regression test must pass.
-6. **Verify end-to-end** when a route changed: `make run` + curl, or `make web` for UI.
+6. **Verify end-to-end** when a route changed: `uv run main.py` + curl, or `make web` for UI.
 7. **Record**
    - Tick items in `agents/progress.md`, set "next step".
    - Append any decision to `agents/decisions.md`; add gotchas to the relevant workflow/knowledge file.

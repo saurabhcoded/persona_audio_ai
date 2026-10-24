@@ -140,15 +140,18 @@ data/personas/<id>/
 
 | Method & path | Body | Returns |
 |---|---|---|
-| `POST /personas` | `{display_name, export_name?, operator_name?, consent: {basis, confirmed: true}}` | `Persona` |
-| `GET /personas` / `GET /personas/{id}` | — | `Persona[]` / `Persona` |
-| `DELETE /personas/{id}` | — | `204` (full erase) |
+| `POST /personas/participants` *(built)* | multipart `file` | `{participants: [{name, messages}], total_messages}` — nothing stored |
+| `POST /personas` *(built)* | multipart `name, sender, consent, file[, consent_basis]` | `202` summary, `status: building`; background build |
+| `GET /personas` / `GET /personas/{id}` *(built)* | — | summaries / detail (card, style, stats, report, emoji_map) |
+| `DELETE /personas/{id}` *(built)* | — | `204` (full erase; demo persona → 400) |
 | `POST /personas/{id}/ingest` | multipart `file` (.txt/.zip), `rules` JSON | `{participants, report}` |
 | `GET /personas/{id}/review` / `POST /personas/{id}/review` | `{window_id, decision}` | queue / `204` |
 | `POST /personas/{id}/build` | — | `{style_stats, card, emoji_map, pairs_indexed}` |
 | `GET/PUT /personas/{id}/card` | card JSON | card |
 | `POST /personas/{id}/voice` | `{reference_id}` or multipart clips + transcripts | `VoiceConfig` |
-| `POST /chat` | `{persona_id, session_id, message, speak: bool}` | `{bubbles: [str], tts_text, audio_b64 \| null, mood, debug?}` |
+| `POST /chat/stream` *(built)* | `{persona_id, turns: [{role: user\|persona, text}]}` | SSE: `delta {text}`… then `done {bubbles, tts_text}` or `error {message}` |
+| `POST /tts` *(built)* | `{text, persona_id?, voice_id?}` (`tts_text` with cues; `voice_id` catalog-only, overrides persona) | `audio/mpeg` bytes |
+| `GET /voices` *(built)* | — | voice catalog `[{id, name, gender, language, description}]` |
 
 Errors: `409` persona not built/voice missing, `422` validation, `403` voice action without consent.
 

@@ -62,7 +62,28 @@ multi-speaker `<|speaker:0|>` with `reference_id` array.
   audio = client.tts.convert(text=..., reference_id=..., config=TTSConfig(temperature=0.7, top_p=0.7))
   ```
   `tts.convert()` → bytes · `tts.stream()` → iterable · `tts.stream_websocket()` → realtime text in.
+- **Verified with fish-audio-sdk 1.3.0:** `AsyncFishAudio(api_key=...)`; `await client.tts.convert(text=, reference_id=, format=, model=)` → bytes.
+  The SDK's `model` type hint lists only `speech-1.5/1.6, s1, s2-pro`, but `model="s2.1-pro"` works at runtime
+  (passed as header) — hence the `# type: ignore` in `app/speech/tts.py`.
+- Without `reference_id` Fish uses a default voice (works; good for the demo). ~2.5 s for one sentence, ~3.9 s for 4 lines, mp3 128 kbps mono 44.1 kHz.
 - Verify exact SDK constructor/model params against https://docs.fish.audio/api-reference/sdk/python/resources.md before coding.
+
+## Voice catalog (app/speech/voices.py, verified 2026-10-24 with s2.1-pro)
+
+| Name | id | Notes |
+|---|---|---|
+| Sarah (F, en) | 933563129e564b19a115bedd57b7406a | young, conversational, soft |
+| Selene (F, en) | b347db033a6549378b48d00acb0d06cd | calm, gentle |
+| Slax (M, en) | c5f56a6cc2ec4fa8920cb4c5889a3fb7 | clear, smooth |
+| Verity (M, en) | 711cf3ed00ab441a8f54a45058047b7a | young, conversational |
+| Girl Hindi (F, hi) | 4d7609058bd34213b1378b29efbde1f1 | user-provided; Fish title "Girl hindi" |
+| Boy Hindi (M, hi) | 528f686ef2154885b368dd4b93fb8728 | user-provided; Fish title "Gojo hindi" |
+
+- Defaults picked from `voices.list(tags=male|female, language=en, sort_by=task_count)`, skipping
+  celebrity/character imitations (announcers, YouTubers) that top the popularity list.
+- **Concurrency limit:** 6 parallel TTS calls → one `HTTP 429 … exceeded your current concurrency limit`
+  (`fishaudio.exceptions.RateLimitError`). `TTSClient.synthesize` retries 429 twice with backoff.
+- Each voice ≈ 1.5–2 s for a short Hinglish line.
 
 ## Voice cloning
 

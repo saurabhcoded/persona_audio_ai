@@ -54,15 +54,40 @@ docker compose up --build -d
 
 ## Run locally
 
+Python is managed with [uv](https://docs.astral.sh/uv/): dependencies live in `pyproject.toml`
+(dev tools in the `dev` group) and are pinned in `uv.lock`.
+
 ```bash
-python -m venv .venv && source .venv/bin/activate   # or: uv venv
-pip install -r requirements-dev.txt
-make run      # uvicorn with reload on :8000
+uv sync                      # create .venv and install everything from uv.lock
+uv run main.py               # API on :8000 (auto-reload when ENVIRONMENT=local)
+uv run main.py --no-reload   # or --reload to force it on
+uv add <package>             # add a runtime dependency (updates pyproject + lock)
+uv add --dev <package>       # add a dev-only dependency
+
+make run      # same as `uv run main.py`
 make web      # Vite dev server on :5173 (proxies /api to :8000)
 make web-build  # build SPA so FastAPI serves it at :8000
 make test
 make lint
 ```
+
+### Demo chat
+
+Needs `gcloud auth application-default login` (Gemini on Vertex AI) and `FISH_AUDIO_API_KEY` in
+`.env` (for voice). Run `uv run main.py` and `make web`, open http://localhost:5173 and chat with the
+synthetic demo persona. Replies stream in; **▶ Speak** plays them through Fish Audio with
+emoji-derived expression cues ("Show voice script" displays the cued text).
+
+**Personas:** click **+ New**, upload a WhatsApp export (chat → ⋮ → More → Export chat → Without media),
+pick which participant the persona is, choose a voice (▶ Preview to listen), confirm consent, and create. The chat is sanitized (phone numbers,
+emails, IDs, account/card numbers, links, other group members' names) before anything is stored; the
+uploaded file itself is never saved. Not yet removed: names of people who are only mentioned in messages,
+and sensitive topics (see `agents/progress.md`). The build (style stats, persona card, emoji→voice map, reply index) runs in the background,
+usually under a minute, then select the persona and chat. Data lives in `DATA_DIR` (`data/`, git-ignored).
+
+API: `GET/POST /api/v1/personas`, `POST /api/v1/personas/participants`, `GET/DELETE /api/v1/personas/{id}`,
+`POST /api/v1/chat/stream` (SSE), `POST /api/v1/tts`, `GET /api/v1/voices`.
+Project docs: `docs/requirements/`, agent steering: `agents/`.
 
 Health check: `GET /api/v1/health`. `/docs` and `/redoc` are disabled when `ENVIRONMENT=prod`.
 

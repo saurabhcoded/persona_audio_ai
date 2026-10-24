@@ -48,6 +48,14 @@ POST /personas/{id}/ingest (file, rules)
 - Input is post-step-4 text only. JSON schema enforced; on parse failure → treat as review.
 - `confidence < 0.6` and review mode → `review.jsonl`, excluded from build until approved.
 
+## Implementation status / gotchas (2026-10-24)
+
+- Built: parser, artifacts, PII, participant pseudonymization, report. Not built: operator rules (FR-GRD-05),
+  NER for non-participant names, topic classifier + review queue.
+- Sender labels can be phone numbers (unsaved contacts) → `Contact_N`.
+- Pattern order in `pii.py` matters: UPI → CARD(Luhn) → EMAIL → URL → AADHAAR(exactly 12) → PHONE → ACCOUNT.
+- Keep invisible characters as escapes in source (`\u202f`), never raw — ruff flags raw control chars.
+
 ## Tests to keep green
 
 - Parser: Android, iOS, multi-line, LRM, D/M vs M/D, system lines.

@@ -14,4 +14,5 @@ LLM: Gemini on Vertex AI via gcloud ADC — `agents/knowledge/vertex-gemini.md`.
 
 After finishing a task, update `agents/progress.md` and append to `agents/decisions.md` if you decided something.
 
-Commands: `make run` · `make web` · `make test` · `make lint` · `make format` · `make dev` (Docker).
+Python is managed with **uv** (`pyproject.toml` + `uv.lock`; add deps with `uv add`, never pip).
+Commands: `uv sync` · `uv run main.py` (API) · `make web` (frontend) · `uv run pytest -q` · `make lint` · `make format` · `make dev` (Docker).

@@ -30,7 +30,11 @@ in their cloned voice with expressive Fish Audio cues derived from their own emo
 - Comment density like the existing code: short docstrings on non-obvious functions, no narration.
 - Async routes; wrap blocking SDK calls with `run_in_threadpool` if the SDK is sync.
 - Frontend: React + Vite, call the backend only through `frontend/src/api.js`.
-- Add a dependency only when the milestone needs it; pin a lower bound in `requirements.txt`.
+- **Python tooling is uv.** Dependencies only via `uv add <pkg>` / `uv add --dev <pkg>` (updates
+  `pyproject.toml` + `uv.lock`; commit both). Never `pip install`, never hand-edit `uv.lock`, no
+  `requirements*.txt`. Run things with `uv run …` (`uv run main.py`, `uv run pytest`).
+- Add a dependency only when the milestone needs it, with a lower bound.
+- Entry point: root `main.py` (uvicorn from `Settings`); `app/main.py` is the FastAPI app.
 
 ## Design defaults
 
@@ -52,6 +56,7 @@ in their cloned voice with expressive Fish Audio cues derived from their own emo
 
 ## How to verify things
 
-- Backend: `make run`, then `curl localhost:8000/api/v1/...`; docs at `/docs` (non-prod).
+- Backend: `uv run main.py` (or `make run`), then `curl localhost:8000/api/v1/...`; docs at `/docs` (non-prod).
+  For a throwaway test server use another port: `PORT=8766 uv run main.py --no-reload`.
 - Frontend: `make web` → http://localhost:5173 (proxies `/api`).
-- Tests: `make test`. Live API smoke tests: `pytest -m live` (needs keys; opt-in).
+- Tests: `make test` (= `uv run pytest -q`). Live API smoke tests: `uv run pytest -m live` (needs keys; opt-in).
